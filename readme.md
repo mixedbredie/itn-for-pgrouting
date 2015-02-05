@@ -17,9 +17,11 @@ Update road names and road numbers
 
 Create one way view
 -------------------
+![One Way](images/652.jpg)
 
 Create grade separation view
 ----------------------------
+![Grade Separation](images/530A.jpg)
 
 Create network build function
 -----------------------------
@@ -44,12 +46,15 @@ Calculate network costs
 
 Create no entry restrictions
 ----------------------------
+![No Entry](images/616.jpg)
 
 Create no turn restrictions
 ---------------------------
+![No Turn](images/613.jpg)
 
 Create mandatory turn restrictions
 ----------------------------------
+![Mandatory Turn](images/609A.jpg)
 
 Build pgRouting topology
 ------------------------
@@ -63,7 +68,11 @@ pgRouting and QGIS
 References
 ----------
 http://www.ordnancesurvey.co.uk/business-and-government/products/itn-layer.html
+
 https://github.com/AstunTechnology/Loader
+
 http://pgrouting.org/
+
 http://www.archaeogeek.com/blog/2012/08/17/pgrouting-with-ordnance-survey-itn-data/
+
 http://anitagraser.com/?s=pgrouting
