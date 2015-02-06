@@ -46,10 +46,68 @@ To build a valid network that pgRouting can use you need to create some addition
 
 Update road names and road numbers
 ----------------------------------
+First let's update the roadlink table with road names and road numbers.  Add the roadname and roadnumber fields to the roadlink table:
+
+    ALTER TABLE roadlink ADD COLUMN roadname character varying(250);
+    ALTER TABLE roadlink ADD COLUMN roadnumber character varying(70);
+
+This uses the road table to update the roadlink table with road names.  Takes some time to run if you have a large dataset.
+
+    UPDATE roadlink SET roadname = 
+    (
+    SELECT DISTINCT array_to_string(c.roadname,', ') AS roadname 
+    FROM roadlink a 
+    INNER JOIN road_roadlink b ON b.roadlink_fid = a.fid
+    INNER JOIN road c ON c.fid = b.road_fid
+    WHERE a.fid = roadlink.fid 
+    AND c.descriptivegroup = 'Named Road'
+    );
+
+The following three queries update the roadlink table with the DFT road numbers.  This is somewhat quicker than the query above as there usually fewer records to update.
+
+Update Motorways
+
+    UPDATE roadlink SET dftname = 
+    (
+    SELECT DISTINCT array_to_string(c.roadname,', ') AS roadname 
+    FROM roadlink a 
+    INNER JOIN road_roadlink b ON b.roadlink_fid = a.fid
+    INNER JOIN road c ON c.fid = b.road_fid
+    WHERE a.fid = roadlink.fid 
+    AND c.descriptivegroup = 'Motorway'
+    )
+    WHERE roadlink.descriptiveterm = 'Motorway';
+
+Update A Roads
+
+    UPDATE roadlink SET dftname = 
+    (
+    SELECT DISTINCT array_to_string(c.roadname,', ') AS roadname 
+    FROM roadlink a 
+    INNER JOIN road_roadlink b ON b.roadlink_fid = a.fid
+    INNER JOIN road c ON c.fid = b.road_fid
+    WHERE a.fid = roadlink.fid 
+    AND c.descriptivegroup = 'A Road'
+    )
+    WHERE roadlink.descriptiveterm = 'A Road';
+
+Update B Roads
+
+    UPDATE roadlink SET dftname = 
+    (
+    SELECT DISTINCT array_to_string(c.roadname,', ') AS roadname 
+    FROM roadlink a 
+    INNER JOIN road_roadlink b ON b.roadlink_fid = a.fid
+    INNER JOIN road c ON c.fid = b.road_fid
+    WHERE a.fid = roadlink.fid 
+    AND c.descriptivegroup = 'B Road'
+    )
+    WHERE roadlink.descriptiveterm = 'B Road';
 
 Create one way view
 -------------------
 ![One Way](images/652.jpg)
+Start with creating a view of one way streets in the network.  This combines the information in the roadrouteinformation table with the view linking the roadlinks and roadrouteinformation to select out the streets with a "one way" environmental qualifier.  It also adds a numeric value to the roadlink to indicate whether the one way direction is the same as the digitised direction of the link as shown by the "+" and "-".  These values will be used later in the network table.
 
 Create grade separation view
 ----------------------------
