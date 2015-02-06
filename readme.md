@@ -21,7 +21,7 @@ Create one way view
 
 Create grade separation view
 ----------------------------
-![Grade Separation](images/530A.JPG)
+<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/530A.JPG" alt="Grade Separation" width="206px">
 
 Create network build function
 -----------------------------
@@ -46,11 +46,11 @@ Calculate network costs
 
 Create no entry restrictions
 ----------------------------
-![No Entry](images/616.jpg)
+<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/616.jpg" alt="No Entry" width="206px">
 
 Create no turn restrictions
 ---------------------------
-![No Turn](images/613.jpg)
+<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/613.jpg" alt="No Turn" width="206px">
 
 Create mandatory turn restrictions
 ----------------------------------
