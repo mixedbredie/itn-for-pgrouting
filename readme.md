@@ -21,7 +21,7 @@ Create one way view
 
 Create grade separation view
 ----------------------------
-![Grade Separation](images/530A.jpg)
+![Grade Separation](images/530A.JPG)
 
 Create network build function
 -----------------------------
