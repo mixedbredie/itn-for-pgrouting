@@ -243,18 +243,109 @@ Now we will create a function to use the roadlink table and the grade separation
 
 Update one way field
 --------------------
+This joins the one way view to the network table and updates the "oneway" field with a 1 or 0 depending.
 
 Update grade separation fields
 ------------------------------
+This joins the grade separation view to the network table and updates the "gradeseparation_s" and "gradeseparation_e" fields with a 1 or 0 depending.
 
 Rebuild elevated sections
 -------------------------
+Work in progress
 
 Populate pgRouting fields
 -------------------------
+pgRouting requires a number of field to be present and populated in order for the routing algorithms to work.  First, update the coordinates for the start and end of the road link.
 
-Calculate network costs
------------------------
+    UPDATE itn_network 
+	SET x1 = st_x(st_startpoint(geometry)),
+	  y1 = st_y(st_startpoint(geometry)),
+	  x2 = st_x(st_endpoint(geometry)),
+	  y2 = st_y(st_endpoint(geometry));
+
+pgRouting use costs to determine the best routes across the network.  Costs can be time based (what is the quickest route?) or distance based (what is the shortest route?).  Reverse costs are also calculated which allows pgRouting to take into account one way streets and turn restrictions.
+
+    UPDATE itn_network
+	SET cost_len = ST_Length(geometry),
+	  rcost_len = ST_Length(geometry);
+
+Setting costs for one way streets using the "rl_attribute" set earlier in the network build function.
+
+	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute < 500;
+	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute < 500;
+	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute > 500 and rl_attribute < 1000;
+	UPDATE itn_network SET rcost_len = cost_len*1000 WHERE rl_attribute > 500 and rl_attribute < 1000;
+	UPDATE itn_network SET cost_len = ST_Length(geometry)*1000 WHERE rl_attribute > 1000;
+	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute > 1000;
+
+pgRouting offers some tools to analyse your road network for valid one way streets and we can use those to check for errors.   First we need to populate the "one_way" field with the values required for the function to work:
+
+	UPDATE itn_network SET one_way = 'B' WHERE rl_attribute < 500;
+    UPDATE itn_network SET one_way = 'TF' WHERE rl_attribute > 500 AND rl_attribute < 1000;
+    UPDATE itn_network SET one_way = 'FT' WHERE rl_attribute > 1000;
+
+Calculate network time costs
+----------------------------
+One big update for all the road links.  Sets an average speed in km/h for each link depending on road class and nature of road.
+
+    UPDATE itn_network SET 
+		rl_speed = CASE WHEN descriptiveterm = 'A Road' AND natureofroad = 'Dual Carriageway' THEN 100
+		WHEN descriptiveterm = 'A Road' AND natureofroad = 'Roundabout' THEN 40
+		WHEN descriptiveterm = 'A Road' AND natureofroad = 'Single Carriageway' THEN 70
+		WHEN descriptiveterm = 'A Road' AND natureofroad = 'Slip Road' THEN 40
+		WHEN descriptiveterm = 'A Road' AND natureofroad = 'Traffic Island Link' THEN 40
+		WHEN descriptiveterm = 'A Road' AND natureofroad = 'Traffic Island Link At Junction' THEN 40
+		WHEN descriptiveterm = 'Alley' AND natureofroad = 'Single Carriageway' THEN 5
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Dual Carriageway' THEN 80
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Roundabout' THEN 40
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Single Carriageway' THEN 60
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Slip Road' THEN 40
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Traffic Island Link' THEN 40
+		WHEN descriptiveterm = 'B Road' AND natureofroad = 'Traffic Island Link At Junction' THEN 40
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Dual Carriageway' THEN 40
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Roundabout' THEN 30
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Single Carriageway' THEN 40
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Slip Road' THEN 30
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Traffic Island Link' THEN 30
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Traffic Island Link At Junction' THEN 30
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Dual Carriageway' THEN 50
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Roundabout' THEN 30
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Single Carriageway' THEN 50
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Slip Road' THEN 30
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Traffic Island Link' THEN 30
+		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Traffic Island Link At Junction' THEN 30
+		WHEN descriptiveterm = 'Motorway' AND natureofroad = 'Dual Carriageway' THEN 120
+		WHEN descriptiveterm = 'Motorway' AND natureofroad = 'Roundabout' THEN 40
+		WHEN descriptiveterm = 'Motorway' AND natureofroad = 'Single Carriageway' THEN 100
+		WHEN descriptiveterm = 'Motorway' AND natureofroad = 'Slip Road' THEN 40
+		WHEN descriptiveterm = 'Pedestrianised Street' AND natureofroad = 'Single Carriageway' THEN 1
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Dual Carriageway' THEN 80
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Enclosed Traffic Area Link' THEN 40
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Roundabout' THEN 40
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Single Carriageway' THEN 60
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Slip Road' THEN 40
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Traffic Island Link' THEN 40
+		WHEN descriptiveterm = 'Private Road - Publicly Accessible' AND natureofroad = 'Traffic Island Link At Junction' THEN 40
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Dual Carriageway' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Enclosed Traffic Area Link' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Roundabout' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Single Carriageway' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Slip Road' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Traffic Island Link' THEN 5
+		WHEN descriptiveterm = 'Private Road - Restricted Access' AND natureofroad = 'Traffic Island Link At Junction' THEN 5
+		ELSE null END;
+
+Then use the speed and road link length to calculate a time cost for each road link.
+
+    UPDATE itn_network SET
+    cost_time = CASE
+        WHEN one_way='TF' THEN 10000.0
+        ELSE cost_len/1000.0/rl_speed::numeric*3600.0
+        END,
+    rcost_time = CASE
+        WHEN one_way='FT' THEN 10000.0
+        ELSE cost_len/1000.0/rl_speed::numeric*3600.0
+        END;
 
 Create no entry restrictions
 ----------------------------
@@ -275,8 +366,20 @@ Build pgRouting topology
     
 Analyse network topology
 ------------------------
+It's a good idea to analyse your network topology once create to give you an idea of any potential errors.
 
     SELECT pgr_analyzeGraph('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target'); 
+
+Get some stats about your one way streets as well.
+    
+    SELECT pgr_analyzeOneway('osmm_itn.itn_network',
+            ARRAY['', 'B', 'TF'],
+            ARRAY['', 'B', 'FT'],
+            ARRAY['', 'B', 'FT'],
+            ARRAY['', 'B', 'TF'],
+            oneway:='one_way'
+            );
+
 
 pgRouting and QGIS
 ------------------
