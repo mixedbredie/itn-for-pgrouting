@@ -151,9 +151,13 @@ Create mandatory turn restrictions
 
 Build pgRouting topology
 ------------------------
-
+    
+    SELECT pgr_createTopology('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target');
+    
 Analyse network topology
 ------------------------
+
+    SELECT pgr_analyzeGraph('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target'); 
 
 pgRouting and QGIS
 ------------------
