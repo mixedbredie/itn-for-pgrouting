@@ -112,6 +112,7 @@ Start with creating a view of one way streets in the network.  This combines the
 Create grade separation view
 ----------------------------
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/530A.JPG" alt="Grade Separation" width="206px">
+Then create a view to hold all the links with grade separation values of 1, i.e. elevated at one or both ends.  The view will be used to identify all the links in the final network table that make up bridges and overpasses.
 
 Create network build function
 -----------------------------
