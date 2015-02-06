@@ -5,12 +5,44 @@ This document and repository explains how to load Ordnance Survey ITN GML into a
 
 Setting up PostGIS
 ------------------
+I am running this on PostgreSQL 9.3.5 with PostGIS 2.1.5 and pgRouting 2.0.0 on "localhost" with user "postgres".  Adjust your settings as necessary.  This is what I used.
+
+Create a new database: **routing**
+
+Create a new schema: **osmm_itn**
+
+Adjust the search_path variable for user postgres if required to access the osmm_itn schema.
+
+Enable the pgRouting extension: **CREATE EXTENSION pgrouting;**
 
 Configuring Loader
 ------------------
+Get Loader: https://github.com/AstunTechnology/Loader and download and unpack into your working directory.  Follow the instructions to configure Loader to load the ITN GML into PostGIS.
+
+My Loader configuration (sans comments)
+
+    src_dir=C:\Workspace\Loader\ITN_6348787\01
+    out_dir=C:\Workspace\Loader\output
+    tmp_dir=C:\Workspace\Loader
+    ogr_cmd=ogr2ogr --config GML_EXPOSE_FID NO -append -skipfailures -f PostgreSQL PG:'dbname=routing active_schema=osmm_itn host=localhost user=postgres password=yourpassword port=5432' $file_path
+    prep_cmd=python prepgml4ogr.py $file_path prep_osgml.prep_osmm_itn
+    post_cmd=
+    gfs_file=../gfs/osmm_itn_postgres.gfs
+    debug=False
 
 Loading
 -------
+Load the ITN GML into PostGIS using Loader by running in the Loader directory:
+
+    python loader.py loader.config
+
+Note: I used non-geographically chunked GML (as opposed to geographically chunked) from Ordnance Survey - this does not contain duplicate features which can lead to issues later on.
+
+Once the GML has been loaded into PostGIS run the views.sql file in the extras directory of the Loader installation.  This creates a number of views that link the ITN tables together and provide the links between the road links and the road route information (RRI).
+
+Now you should have some tables and some views in the osmm_itn schema in your routing database.
+
+To build a valid network that pgRouting can use you need to create some additional views which contain the information required to model one way streets, grade separations and turn restrictions and mandatory turns.
 
 Update road names and road numbers
 ----------------------------------
