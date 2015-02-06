@@ -114,11 +114,13 @@ Create grade separation view
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/530A.JPG" alt="Grade Separation" width="206px">
 Then create a view to hold all the links with grade separation values of 1, i.e. elevated at one or both ends.  The view will be used to identify all the links in the final network table that make up bridges and overpasses.
 
-Create network build function
------------------------------
-
 Create network table
 --------------------
+Once we have this in place we can create an empty table to hold the route network geometry and attributes required for pgRouting.  I am going to call my table "itn_network".
+
+Create network build function
+-----------------------------
+Now we will create a function to use the roadlink table and the grade separation and one way views to populate the network table we created in the previous step.
 
 Update one way field
 --------------------
