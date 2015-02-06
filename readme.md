@@ -109,10 +109,60 @@ Create one way view
 ![One Way](images/652.jpg)
 Start with creating a view of one way streets in the network.  This combines the information in the roadrouteinformation table with the view linking the roadlinks and roadrouteinformation to select out the streets with a "one way" environmental qualifier.  It also adds a numeric value to the roadlink to indicate whether the one way direction is the same as the digitised direction of the link as shown by the "+" and "-".  These values will be used later in the network table.
 
+    -- View: view_itn_oneway
+    -- DROP VIEW view_itn_oneway;
+    CREATE OR REPLACE VIEW view_itn_oneway AS 
+    SELECT replace(array_to_string(rri.directedlink_href, ', '::text), '#'::text, ''::text) AS directedlink_href,
+      rrirl.roadrouteinformation_fid,
+      array_to_string(rri.directedlink_orientation, ', '::text) AS directedlink_orientation,
+      array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier,
+        CASE
+            WHEN rri.directedlink_orientation::text = '{+}'::text THEN 512
+            ELSE 1024
+        END AS oneway_attr
+    FROM roadrouteinformation_roadlink rrirl
+    RIGHT JOIN roadrouteinformation rri ON rri.fid::text = rrirl.roadrouteinformation_fid::text
+    WHERE rri.environmentqualifier_instruction = '{"One Way"}'::character varying[];
+    ALTER TABLE view_itn_oneway
+      OWNER TO postgres;
+    COMMENT ON VIEW view_itn_oneway 
+      IS 'ITN one way streets view';
+
 Create grade separation view
 ----------------------------
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/530A.JPG" alt="Grade Separation" width="206px">
 Then create a view to hold all the links with grade separation values of 1, i.e. elevated at one or both ends.  The view will be used to identify all the links in the final network table that make up bridges and overpasses.
+
+    -- View: view_itn_gradeseparation
+    -- DROP VIEW view_itn_gradeseparation;
+    CREATE OR REPLACE VIEW view_itn_gradeseparation AS 
+      SELECT rl.fid,
+      rl.ogc_fid,
+      rl.directednode_gradeseparation[1] AS gradeseparation_s,
+      rl.directednode_gradeseparation[2] AS gradeseparation_e,
+      COALESCE(((rl.roadname::text || ' ('::text) || rl.dftname::text) || ')'::text, COALESCE(rl.dftname::text, rl.descriptiveterm::text)) AS roadname,
+      rl.wkb_geometry
+    FROM roadlink rl
+    WHERE rl.directednode_gradeseparation = '{0,1}'::integer[] OR rl.directednode_gradeseparation = '{1,1}'::integer[] OR rl.directednode_gradeseparation = '{1,0}'::integer[];
+    ALTER TABLE view_itn_gradeseparation
+      OWNER TO postgres;
+    COMMENT ON VIEW view_itn_gradeseparation
+      IS 'ITN links with grade separation';
+
+This is a work in progress here but pgRouting has some issues with bridges being split where they cross the underlying road link.  So, in an attempt to build a better network the following view takes the road links with grade separation values of 1 and unions then merges the input to create single linestrings representing the bridge.  These are then put back into the final network table replacing the existing road links.
+
+    -- View: view_itn_bridges
+
+    -- DROP VIEW view_itn_bridges;
+
+    CREATE OR REPLACE VIEW view_itn_bridges AS 
+     SELECT gs.roadname,
+        (st_dump(st_linemerge(st_union(gs.wkb_geometry)))).geom AS wkb_geometry
+     FROM view_itn_gradeseparation gs
+     GROUP BY gs.roadname;
+
+    ALTER TABLE view_itn_bridges
+      OWNER TO postgres;
 
 Create network table
 --------------------
