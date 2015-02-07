@@ -473,6 +473,7 @@ Then use the speed and road link length to calculate a time cost for each road l
 Create no entry restrictions
 ----------------------------
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/616.jpg" alt="No Entry" width="206px">
+A somewhat complex process follows wherein a view of oneway streets is created and then subsequent views of all road links that connect to the end of the one way street and have a restricted turn into it.  The views are combined into a final table in pgRouting turn restriction format.
 
 Create no turn restrictions
 ---------------------------
