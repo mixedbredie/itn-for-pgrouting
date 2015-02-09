@@ -589,12 +589,12 @@ Create the turn restriction table in pgRouting format
 Populate the turn restriction table
 
 	INSERT INTO itn_nt_restrictions(rid,feid,teid)
-	  SELECT objectid AS rid,edge1fid AS feid,edge2fid AS teid FROM view_rridl_nt v
-	  WHERE v.edge2fid <> 0
-	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
-	
+  	  SELECT objectid AS rid,edge1fid AS feid,edge2fid AS teid FROM view_rrirl_nt v
+  	  WHERE v.edge2fid <> 0
+  	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
+
 	INSERT INTO itn_nt_restrictions(rid,feid,teid)
-	  SELECT objectid AS rid,edge1fid AS feid,edge3fid AS teid FROM view_rridl_nt v
+	  SELECT objectid AS rid,edge1fid AS feid,edge3fid AS teid FROM view_rrirl_nt v
 	  WHERE v.edge3fid <> 0
 	  AND v.edge3fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
 
