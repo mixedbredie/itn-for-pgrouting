@@ -494,7 +494,7 @@ First link (these take some time - improvements?)
 		rri.ogc_fid, 
 		array_to_string(rri.vehiclequalifier_type,', '),
 		rri.datetimequalifier,
-		rri.wkb_geometry, 
+		rl.wkb_geometry, 
 		rl.ogc_fid AS objectid, 
 		rl.fid2 AS fid,
 		nt_i.edgefcid as edge1fcid, 
@@ -515,7 +515,7 @@ Second link
 		rri.ogc_fid, 
 		array_to_string(rri.vehiclequalifier_type,', '),
 		rri.datetimequalifier,
-		rri.wkb_geometry, 
+		rl.wkb_geometry, 
 		rl.ogc_fid AS objectid, 
 		rl.fid2 AS fid,
 		nt_i.edgefcid as edge2fcid, 
@@ -536,7 +536,7 @@ Third link
 		rri.ogc_fid, 
 		array_to_string(rri.vehiclequalifier_type,', '),
 		rri.datetimequalifier,
-		rri.wkb_geometry, 
+		rl.wkb_geometry, 
 		rl.ogc_fid AS objectid, 
 		rl.fid2 AS fid,
 		nt_i.edgefcid as edge3fcid, 
@@ -549,7 +549,68 @@ Third link
 
 Combined view of all turn restricted links
 
-Create the turn restriction table
+	CREATE OR REPLACE VIEW view_rrirl_nt AS
+		SELECT nt1.objectid as objectid, 
+		CASE WHEN nt1.directedlink_orientation = '+' THEN 'y' ELSE 'n' END AS edge1end,
+		COALESCE(nt1.edge1fcid) as edge1fcid,
+		COALESCE(nt1.ogc_fid,0) as edge1fid,
+		COALESCE(nt1.edge1pos,0) as edge1pos,
+		COALESCE(nt2.edge2fcid) as edge2fcid,
+		COALESCE(nt2.ogc_fid,0) as edge2fid,
+		COALESCE(nt2.edge2pos,0) as edge2pos,
+		COALESCE(nt3.edge3fcid) as edge3fcid,
+		COALESCE(nt3.ogc_fid,0) as edge3fid,
+		COALESCE(nt3.edge3pos,0) as edge3pos,
+		nt1.wkb_geometry AS wkb_geometry
+		FROM itn_rrirl_nt_info nt_i, view_rrirl_nt1 nt1   
+		LEFT OUTER JOIN view_rrirl_nt2 nt2 on nt1.objectid = nt2.objectid
+		LEFT OUTER JOIN view_rrirl_nt3 nt3 on nt1.objectid = nt3.objectid;
+	COMMENT ON VIEW view_rrirl_nt
+	  IS 'All roadlinks in turn restriction';
+
+Create the turn restriction table in pgRouting format
+
+	CREATE TABLE itn_nt_restrictions (
+		rid integer NOT NULL,
+		to_cost double precision,
+		teid integer,
+		feid integer,
+		via text--,
+		--CONSTRAINT itn_nt_restrictions_pkey PRIMARY KEY (rid)
+	)
+	WITH (
+	  OIDS=FALSE
+	);
+	ALTER TABLE itn_nt_restrictions
+	  OWNER TO postgres;
+	COMMENT ON TABLE itn_nt_restrictions
+	  IS 'ITN No Turn Restrictions';
+
+Populate the turn restriction table
+
+	INSERT INTO itn_nt_restrictions(rid,feid,teid)
+	  SELECT objectid AS rid,edge1fid AS feid,edge2fid AS teid FROM view_rridl_nt v
+	  WHERE v.edge2fid <> 0
+	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
+	
+	INSERT INTO itn_nt_restrictions(rid,feid,teid)
+	  SELECT objectid AS rid,edge1fid AS feid,edge3fid AS teid FROM view_rridl_nt v
+	  WHERE v.edge3fid <> 0
+	  AND v.edge3fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
+
+Test the turn restrictions using the Turn Restricted Shortest Path (TRSP) algorithm
+
+	SELECT * FROM pgr_trsp(
+	    'SELECT gid AS id, source::integer, target::integer,cost_len AS cost,rcost_len AS reverse_cost from itn_network',
+	    3480,    -- edge_id for start
+	    0.5,  -- midpoint of edge
+	    3033,    -- edge_id of route end
+	    0.5,  -- midpoint of edge
+	    false, -- directed graph?
+	    false, -- has_reverse_cost?
+	              -- include the turn restrictions
+	    'SELECT to_cost, teid AS target_id, feid||coalesce('',''||via,'''') AS via_path FROM itn_nt_restrictions');
+
 
 Create mandatory turn restrictions
 ----------------------------------
