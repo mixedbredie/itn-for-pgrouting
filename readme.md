@@ -478,6 +478,19 @@ A somewhat complex process follows wherein a view of oneway streets is created a
 Create no turn restrictions
 ---------------------------
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/613.jpg" alt="No Turn" width="206px">
+Builds a turn table in pgRouting format from all links in the network with a "No Turn" restriction. The turn is defined as the series of links which form the turn. The turn restriction table lists the restrictions that prevent a route across the network using those links.
+
+Turns can be made up of a number of edges, or links, and the views below select out each link in turn.
+
+First link
+
+Second link
+
+Third link
+
+Combined view of all turn restricted links
+
+Create the turn restriction table
 
 Create mandatory turn restrictions
 ----------------------------------
