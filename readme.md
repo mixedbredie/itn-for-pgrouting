@@ -480,6 +480,45 @@ Create no turn restrictions
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/613.jpg" alt="No Turn" width="206px">
 Builds a turn table in pgRouting format from all links in the network with a "No Turn" restriction. The turn is defined as the series of links which form the turn. The turn restriction table lists the restrictions that prevent a route across the network using those links.
 
+Create some views used to start the No Turn build process:
+
+	-- View: view_rrirl_one_way
+	-- DROP VIEW view_rrirl_one_way;
+	CREATE OR REPLACE VIEW view_rrirl_one_way AS 
+		SELECT rrirl.roadlink_fid, 
+		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier, 
+		rri.fid AS rri_fid, 
+		rl.wkb_geometry
+		FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+		WHERE rrirl.roadrouteinformation_fid = rri.fid 
+		AND rrirl.roadlink_fid = rl.fid
+		AND rri.environmentqualifier_instruction::text = '{"One Way"}'::text;
+	ALTER TABLE view_rrirl_one_way
+	OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_one_way
+	IS 'ITN Road Routing Information Road Link One Way Streets – for turn restrictions';
+  
+	-- View: view_rl_one_way
+	-- DROP VIEW view_rl_one_way;
+	CREATE OR REPLACE VIEW view_rl_one_way AS 
+		SELECT rl.descriptivegroup, 
+		rl.descriptiveterm, 
+		rl.fid AS fid2, 
+		rl.length, 
+		rl.natureofroad, 
+		rl.wkb_geometry, 
+		rl.ogc_fid, 
+		rl.dftname, 
+		rl.roadname, 
+		rl.theme, 
+		ow.directedlink_orientation AS one_way
+	FROM roadlink rl, view_rrirl_one_way ow
+	WHERE rl.fid::text = ow.roadlink_fid::text;
+	ALTER TABLE view_rl_one_way
+	OWNER TO postgres;
+	COMMENT ON VIEW view_rl_one_way
+	IS 'ITN Roadlink One Way Streets – for turn restrictions';
+
 Turns can be made up of a number of edges, or links, and the views below select out each link in turn.  The query below will tell you how many views to create - one for each value in the table.  For my example, ITN for Tayside, I have three values:
 
 	SELECT DISTINCT roadlink_order FROM roadrouteinformation_roadlink;
@@ -586,7 +625,7 @@ Create the turn restriction table in pgRouting format
 	COMMENT ON TABLE itn_nt_restrictions
 	  IS 'ITN No Turn Restrictions';
 
-Populate the turn restriction table
+Populate the turn restriction table from the combined view
 
 	INSERT INTO itn_nt_restrictions(rid,feid,teid)
   	  SELECT objectid AS rid,edge1fid AS feid,edge2fid AS teid FROM view_rrirl_nt v
