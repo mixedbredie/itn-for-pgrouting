@@ -480,13 +480,72 @@ Create no turn restrictions
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/613.jpg" alt="No Turn" width="206px">
 Builds a turn table in pgRouting format from all links in the network with a "No Turn" restriction. The turn is defined as the series of links which form the turn. The turn restriction table lists the restrictions that prevent a route across the network using those links.
 
-Turns can be made up of a number of edges, or links, and the views below select out each link in turn.
+Turns can be made up of a number of edges, or links, and the views below select out each link in turn.  The query below will tell you how many views to create - one for each value in the table.  For my example, ITN for Tayside, I have three values:
 
-First link
+	SELECT DISTINCT roadlink_order FROM roadrouteinformation_roadlink;
+
+First link (these take some time - improvements?)
+
+	CREATE OR REPLACE VIEW view_rrirl_nt1 AS
+	SELECT rrirl.roadlink_fid, 
+		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
+		rrirl.roadlink_order,
+		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
+		rri.ogc_fid, 
+		array_to_string(rri.vehiclequalifier_type,', '),
+		rri.datetimequalifier,
+		rri.wkb_geometry, 
+		rl.ogc_fid AS objectid, 
+		rl.fid2 AS fid,
+		nt_i.edgefcid as edge1fcid, 
+		nt_i.edgepos as edge1pos
+	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
+	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
+	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
+	AND (rl.fid2 = rrirl.roadlink_fid) 
+	AND (rrirl.roadlink_order = 1);
 
 Second link
 
+	CREATE OR REPLACE VIEW view_rrirl_nt2 AS
+	SELECT rrirl.roadlink_fid, 
+		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
+		rrirl.roadlink_order,
+		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
+		rri.ogc_fid, 
+		array_to_string(rri.vehiclequalifier_type,', '),
+		rri.datetimequalifier,
+		rri.wkb_geometry, 
+		rl.ogc_fid AS objectid, 
+		rl.fid2 AS fid,
+		nt_i.edgefcid as edge2fcid, 
+		nt_i.edgepos as edge2pos
+	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
+	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
+	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
+	AND (rl.fid2 = rrirl.roadlink_fid) 
+	AND (rrirl.roadlink_order = 2);
+
 Third link
+
+	CREATE OR REPLACE VIEW view_rrirl_nt3 AS
+	SELECT rrirl.roadlink_fid, 
+		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
+		rrirl.roadlink_order,
+		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
+		rri.ogc_fid, 
+		array_to_string(rri.vehiclequalifier_type,', '),
+		rri.datetimequalifier,
+		rri.wkb_geometry, 
+		rl.ogc_fid AS objectid, 
+		rl.fid2 AS fid,
+		nt_i.edgefcid as edge3fcid, 
+		nt_i.edgepos as edge3pos
+	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
+	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
+	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
+	AND (rl.fid2 = rrirl.roadlink_fid) 
+	AND (rrirl.roadlink_order = 3);
 
 Combined view of all turn restricted links
 
