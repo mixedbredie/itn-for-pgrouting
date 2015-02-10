@@ -525,87 +525,109 @@ Turns can be made up of a number of edges, or links, and the views below select 
 
 First link (these take some time - improvements?)
 
-	CREATE OR REPLACE VIEW view_rrirl_nt1 AS
-	SELECT rrirl.roadlink_fid, 
-		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
-		rrirl.roadlink_order,
-		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
-		rri.ogc_fid, 
-		array_to_string(rri.vehiclequalifier_type,', '),
-		rri.datetimequalifier,
-		rl.wkb_geometry, 
-		rl.ogc_fid AS objectid, 
-		rl.fid2 AS fid,
-		nt_i.edgefcid as edge1fcid, 
-		nt_i.edgepos as edge1pos
-	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
-	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
-	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
-	AND (rl.fid2 = rrirl.roadlink_fid) 
-	AND (rrirl.roadlink_order = 1);
+	CREATE OR REPLACE VIEW view_rrirl_nt1 AS 
+	 SELECT rrirl.roadlink_fid,
+	    rri.directedlink_orientation,
+	    rrirl.roadlink_order,
+	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
+	    rri.ogc_fid,
+	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
+	    rri.datetimequalifier,
+	    rl.wkb_geometry,
+	    rl.ogc_fid AS objectid,
+	    rl.fid2 AS fid,
+	    nt_i.edgefcid AS edge1fcid,
+	    nt_i.edgepos AS edge1pos
+	   FROM roadrouteinformation rri,
+	    roadrouteinformation_roadlink rrirl,
+	    view_rl_one_way rl,
+	    itn_rrirl_nt_info nt_i
+	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 1;
+	
+	ALTER TABLE view_rrirl_nt1
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_nt1
+	  IS 'No Turn First Link';
 
 Second link
 
-	CREATE OR REPLACE VIEW view_rrirl_nt2 AS
-	SELECT rrirl.roadlink_fid, 
-		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
-		rrirl.roadlink_order,
-		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
-		rri.ogc_fid, 
-		array_to_string(rri.vehiclequalifier_type,', '),
-		rri.datetimequalifier,
-		rl.wkb_geometry, 
-		rl.ogc_fid AS objectid, 
-		rl.fid2 AS fid,
-		nt_i.edgefcid as edge2fcid, 
-		nt_i.edgepos as edge2pos
-	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
-	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
-	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
-	AND (rl.fid2 = rrirl.roadlink_fid) 
-	AND (rrirl.roadlink_order = 2);
+	CREATE OR REPLACE VIEW view_rrirl_nt2 AS 
+	 SELECT rrirl.roadlink_fid,
+	    rri.directedlink_orientation,
+	    rrirl.roadlink_order,
+	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
+	    rri.ogc_fid,
+	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
+	    rri.datetimequalifier,
+	    rl.wkb_geometry,
+	    rl.ogc_fid AS objectid,
+	    rl.fid2 AS fid,
+	    nt_i.edgefcid AS edge2fcid,
+	    nt_i.edgepos AS edge2pos
+	   FROM roadrouteinformation rri,
+	    roadrouteinformation_roadlink rrirl,
+	    view_rl_one_way rl,
+	    itn_rrirl_nt_info nt_i
+	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 2;
+	
+	ALTER TABLE view_rrirl_nt2
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_nt2
+	  IS 'No Turn Second Link';
 
 Third link
 
-	CREATE OR REPLACE VIEW view_rrirl_nt3 AS
-	SELECT rrirl.roadlink_fid, 
-		array_to_string(rri.directedlink_orientation,', ') AS directedlink_orientation, 
-		rrirl.roadlink_order,
-		array_to_string(rri.environmentqualifier_instruction,', ') AS environmentqualifier_instruction, 
-		rri.ogc_fid, 
-		array_to_string(rri.vehiclequalifier_type,', '),
-		rri.datetimequalifier,
-		rl.wkb_geometry, 
-		rl.ogc_fid AS objectid, 
-		rl.fid2 AS fid,
-		nt_i.edgefcid as edge3fcid, 
-		nt_i.edgepos as edge3pos
-	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, view_rl_one_way rl, itn_rrirl_nt_info nt_i
-	WHERE (rrirl.roadrouteinformation_fid = rri.fid) 
-	AND (rri.environmentqualifier_instruction = '{"No Turn"}') 
-	AND (rl.fid2 = rrirl.roadlink_fid) 
-	AND (rrirl.roadlink_order = 3);
+	CREATE OR REPLACE VIEW view_rrirl_nt3 AS 
+	 SELECT rrirl.roadlink_fid,
+	    rri.directedlink_orientation,
+	    rrirl.roadlink_order,
+	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
+	    rri.ogc_fid,
+	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
+	    rri.datetimequalifier,
+	    rl.wkb_geometry,
+	    rl.ogc_fid AS objectid,
+	    rl.fid2 AS fid,
+	    nt_i.edgefcid AS edge3fcid,
+	    nt_i.edgepos AS edge3pos
+	   FROM roadrouteinformation rri,
+	    roadrouteinformation_roadlink rrirl,
+	    view_rl_one_way rl,
+	    itn_rrirl_nt_info nt_i
+	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 3;
+	
+	ALTER TABLE view_rrirl_nt3
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_nt3
+	  IS 'No Turn Third Link';
 
 Combined view of all turn restricted links
 
-	CREATE OR REPLACE VIEW view_rrirl_nt AS
-		SELECT nt1.objectid as objectid, 
-		CASE WHEN nt1.directedlink_orientation = '+' THEN 'y' ELSE 'n' END AS edge1end,
-		COALESCE(nt1.edge1fcid) as edge1fcid,
-		COALESCE(nt1.ogc_fid,0) as edge1fid,
-		COALESCE(nt1.edge1pos,0) as edge1pos,
-		COALESCE(nt2.edge2fcid) as edge2fcid,
-		COALESCE(nt2.ogc_fid,0) as edge2fid,
-		COALESCE(nt2.edge2pos,0) as edge2pos,
-		COALESCE(nt3.edge3fcid) as edge3fcid,
-		COALESCE(nt3.ogc_fid,0) as edge3fid,
-		COALESCE(nt3.edge3pos,0) as edge3pos,
-		nt1.wkb_geometry AS wkb_geometry
-		FROM itn_rrirl_nt_info nt_i, view_rrirl_nt1 nt1   
-		LEFT OUTER JOIN view_rrirl_nt2 nt2 on nt1.objectid = nt2.objectid
-		LEFT OUTER JOIN view_rrirl_nt3 nt3 on nt1.objectid = nt3.objectid;
+	CREATE OR REPLACE VIEW view_rrirl_nt AS 
+	 SELECT nt1.objectid,
+	        CASE
+	            WHEN nt1.directedlink_orientation[1]::text = '+'::text THEN 'y'::text
+	            ELSE 'n'::text
+	        END AS edge1end,
+	    COALESCE(nt1.edge1fcid) AS edge1fcid,
+	    COALESCE(nt1.ogc_fid, 0) AS edge1fid,
+	    COALESCE(nt1.edge1pos, 0::double precision) AS edge1pos,
+	    COALESCE(nt2.edge2fcid) AS edge2fcid,
+	    COALESCE(nt2.ogc_fid, 0) AS edge2fid,
+	    COALESCE(nt2.edge2pos, 0::double precision) AS edge2pos,
+	    COALESCE(nt3.edge3fcid) AS edge3fcid,
+	    COALESCE(nt3.ogc_fid, 0) AS edge3fid,
+	    COALESCE(nt3.edge3pos, 0::double precision) AS edge3pos,
+	    nt1.wkb_geometry
+	   FROM itn_rrirl_nt_info nt_i,
+	    view_rrirl_nt1 nt1
+	   LEFT JOIN view_rrirl_nt2 nt2 ON nt1.objectid = nt2.objectid
+	   LEFT JOIN view_rrirl_nt3 nt3 ON nt1.objectid = nt3.objectid;
+	
+	ALTER TABLE view_rrirl_nt
+	  OWNER TO postgres;
 	COMMENT ON VIEW view_rrirl_nt
-	  IS 'All roadlinks in turn restriction';
+	  IS 'No Turn All roadlinks in turn restriction';
 
 Create the turn restriction table in pgRouting format
 
@@ -666,6 +688,18 @@ It's a good idea to analyse your network topology once create to give you an ide
 
     SELECT pgr_analyzeGraph('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target'); 
 
+Find links with problems
+
+    SELECT * FROM itn_network_vertices_pgr WHERE chk = 1;
+    
+Find links with deadends
+
+    SELECT * FROM itn_network_vertices_pgr WHERE cnt = 1;
+    
+Find isolated segments (deadends at both ends)
+
+    SELECT * FROM itn_network a, itn_network_vertices_pgr b, itn_network_vertices_pgr c WHERE a.source = b.id AND b.cnt = 1 AND a.target = c.id AND c.cnt = 1;
+
 Get some stats about your one way streets as well.
     
     SELECT pgr_analyzeOneway('osmm_itn.itn_network',
@@ -676,9 +710,19 @@ Get some stats about your one way streets as well.
             oneway:='one_way'
             );
 
+Find nodes with potential problems
+
+    SELECT * FROM itn_network_vertices_pgr WHERE ein = 0 OR eout = 0;
+    
+Find the links attached to the problem nodes
+
+    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.source=b.id AND ein=0 OR eout=0
+      UNION
+    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.target=b.id AND ein=0 OR eout=0;
 
 pgRouting and QGIS
 ------------------
+Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
 
 References
 ----------
@@ -687,6 +731,8 @@ http://www.ordnancesurvey.co.uk/business-and-government/products/itn-layer.html
 https://github.com/AstunTechnology/Loader
 
 http://pgrouting.org/
+
+http://docs.pgrouting.org/dev/doc/src/tutorial/analytics.html
 
 http://www.archaeogeek.com/blog/2012/08/17/pgrouting-with-ordnance-survey-itn-data/
 
