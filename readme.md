@@ -431,6 +431,7 @@ One big update for all the road links.  Sets an average speed in km/h for each l
 		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Slip Road' THEN 30
 		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Traffic Island Link' THEN 30
 		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Traffic Island Link At Junction' THEN 30
+		WHEN descriptiveterm = 'Local Street' AND natureofroad = 'Enclosed Traffic Area Link' THEN 10
 		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Dual Carriageway' THEN 50
 		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Roundabout' THEN 30
 		WHEN descriptiveterm = 'Minor Road' AND natureofroad = 'Single Carriageway' THEN 50
