@@ -471,10 +471,56 @@ Then use the speed and road link length to calculate a time cost for each road l
         ELSE cost_len/1000.0/rl_speed::numeric*3600.0
         END;
 
-Create no entry restrictions
-----------------------------
-<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/616.jpg" alt="No Entry" width="206px">
-A somewhat complex process follows wherein a view of oneway streets is created and then subsequent views of all road links that connect to the end of the one way street and have a restricted turn into it.  The views are combined into a final table in pgRouting turn restriction format.
+Build pgRouting topology
+------------------------
+    
+    SELECT pgr_createTopology('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target');
+    
+Analyse network topology
+------------------------
+It's a good idea to analyse your network topology once create to give you an idea of any potential errors.
+
+    SELECT pgr_analyzeGraph('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target'); 
+
+Find links with problems
+
+    SELECT * FROM itn_network_vertices_pgr WHERE chk = 1;
+    
+Find links with deadends
+
+    SELECT * FROM itn_network_vertices_pgr WHERE cnt = 1;
+    
+Find isolated segments (deadends at both ends)
+
+    SELECT * FROM itn_network a, itn_network_vertices_pgr b, itn_network_vertices_pgr c WHERE a.source = b.id AND b.cnt = 1 AND a.target = c.id AND c.cnt = 1;
+
+Get some stats about your one way streets as well.
+    
+    SELECT pgr_analyzeOneway('osmm_itn.itn_network',
+            ARRAY['', 'B', 'TF'],
+            ARRAY['', 'B', 'FT'],
+            ARRAY['', 'B', 'FT'],
+            ARRAY['', 'B', 'TF'],
+            oneway:='one_way'
+            );
+
+Find nodes with potential problems
+
+    SELECT * FROM itn_network_vertices_pgr WHERE ein = 0 OR eout = 0;
+    
+Find the links attached to the problem nodes
+
+    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.source=b.id AND ein=0 OR eout=0
+      UNION
+    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.target=b.id AND ein=0 OR eout=0;
+
+pgRouting and QGIS
+------------------
+Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
+
+Further enhancements
+--------------------
+The network can be enhanced by modelling no turn restrictions, mandatory turn restrictions and no entry streets.  The sections below outline the process.  There is much room for improvement here.
 
 Create no turn restrictions
 ---------------------------
@@ -678,52 +724,14 @@ Create mandatory turn restrictions
 ----------------------------------
 ![Mandatory Turn](images/609A.jpg)
 
-Build pgRouting topology
-------------------------
-    
-    SELECT pgr_createTopology('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target');
-    
-Analyse network topology
-------------------------
-It's a good idea to analyse your network topology once create to give you an idea of any potential errors.
+Coming soon.
 
-    SELECT pgr_analyzeGraph('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target'); 
+Create no entry restrictions
+----------------------------
+<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/616.jpg" alt="No Entry" width="206px">
+A somewhat complex process follows wherein a view of oneway streets is created and then subsequent views of all road links that connect to the end of the one way street and have a restricted turn into it.  The views are combined into a final table in pgRouting turn restriction format.
 
-Find links with problems
-
-    SELECT * FROM itn_network_vertices_pgr WHERE chk = 1;
-    
-Find links with deadends
-
-    SELECT * FROM itn_network_vertices_pgr WHERE cnt = 1;
-    
-Find isolated segments (deadends at both ends)
-
-    SELECT * FROM itn_network a, itn_network_vertices_pgr b, itn_network_vertices_pgr c WHERE a.source = b.id AND b.cnt = 1 AND a.target = c.id AND c.cnt = 1;
-
-Get some stats about your one way streets as well.
-    
-    SELECT pgr_analyzeOneway('osmm_itn.itn_network',
-            ARRAY['', 'B', 'TF'],
-            ARRAY['', 'B', 'FT'],
-            ARRAY['', 'B', 'FT'],
-            ARRAY['', 'B', 'TF'],
-            oneway:='one_way'
-            );
-
-Find nodes with potential problems
-
-    SELECT * FROM itn_network_vertices_pgr WHERE ein = 0 OR eout = 0;
-    
-Find the links attached to the problem nodes
-
-    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.source=b.id AND ein=0 OR eout=0
-      UNION
-    SELECT gid FROM itn_network a, itn_network_vertices_pgr b WHERE a.target=b.id AND ein=0 OR eout=0;
-
-pgRouting and QGIS
-------------------
-Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
+Coming sooon.
 
 References
 ----------
