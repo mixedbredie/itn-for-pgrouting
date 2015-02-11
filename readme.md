@@ -724,7 +724,41 @@ Create mandatory turn restrictions
 ----------------------------------
 ![Mandatory Turn](images/609A.jpg)
 
-Coming soon.
+The first view selects out the first link, or approach road, in the mandatory turn.
+
+	CREATE OR REPLACE VIEW view_rrirl_mt1 AS
+		SELECT rrirl.roadlink_fid, 
+		rri.directedlink_orientation, 
+		rrirl.roadlink_order, 
+		rl.fid AS rl_fid,
+		rri.fid AS rri_fid,
+		rl.wkb_geometry   
+		FROM 
+		roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+		WHERE 
+		rrirl.roadrouteinformation_fid = rri.fid 
+		AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}' and rrirl.roadlink_order = 1
+		and rl.fid = rrirl.roadlink_fid;
+	COMMENT ON VIEW view_rrirl_mt1
+	  IS 'Approach Road for ITN Mandatory Turn Restrictions';
+
+The second view selects out the second link, or exit road, in the mandatory turn.  
+  
+	CREATE OR REPLACE VIEW view_rrirl_mt2 AS
+		SELECT rrirl.roadlink_fid, 
+		rri.directedlink_orientation, 
+		rrirl.roadlink_order, 
+		rl.fid AS rl_fid,
+		rri.fid AS rri_fid,
+		rl.wkb_geometry   
+		FROM 
+		roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+		WHERE 
+		rrirl.roadrouteinformation_fid = rri.fid 
+		AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}' and rrirl.roadlink_order = 2
+		and rl.fid = rrirl.roadlink_fid;
+	COMMENT ON VIEW view_rrirl_mt2
+	  IS 'Exit Road for ITN Mandatory Turn Restrictions';
 
 Create no entry restrictions
 ----------------------------
