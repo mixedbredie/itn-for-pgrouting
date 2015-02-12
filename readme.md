@@ -727,18 +727,18 @@ Create mandatory turn restrictions
 The first view selects out the first link, or approach road, in the mandatory turn.
 
 	CREATE OR REPLACE VIEW view_rrirl_mt1 AS
-		SELECT rrirl.roadlink_fid, 
-		rri.directedlink_orientation, 
-		rrirl.roadlink_order, 
-		rl.fid AS rl_fid,
-		rri.fid AS rri_fid,
-		rl.wkb_geometry   
-		FROM 
-		roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
-		WHERE 
-		rrirl.roadrouteinformation_fid = rri.fid 
-		AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}' and rrirl.roadlink_order = 1
-		and rl.fid = rrirl.roadlink_fid;
+	 SELECT rrirl.roadlink_fid,
+	    rri.directedlink_orientation,
+	    rrirl.roadlink_order,
+	    rl.ogc_fid AS objectid,
+	    rl.fid AS rl_fid,
+	    rri.fid AS rri_fid,
+	    rl.wkb_geometry
+	   FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}'::character varying[] AND rrirl.roadlink_order = 1 AND rl.fid::text = rrirl.roadlink_fid;
+	
+	ALTER TABLE view_rrirl_mt1
+	  OWNER TO postgres;
 	COMMENT ON VIEW view_rrirl_mt1
 	  IS 'Approach Road for ITN Mandatory Turn Restrictions';
 
@@ -748,17 +748,57 @@ The second view selects out the second link, or exit road, in the mandatory turn
 		SELECT rrirl.roadlink_fid, 
 		rri.directedlink_orientation, 
 		rrirl.roadlink_order, 
+		rl.ogc_fid AS objectid,
 		rl.fid AS rl_fid,
 		rri.fid AS rri_fid,
 		rl.wkb_geometry   
-		FROM 
-		roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+		FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
 		WHERE 
 		rrirl.roadrouteinformation_fid = rri.fid 
 		AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}' and rrirl.roadlink_order = 2
 		and rl.fid = rrirl.roadlink_fid;
 	COMMENT ON VIEW view_rrirl_mt2
 	  IS 'Exit Road for ITN Mandatory Turn Restrictions';
+
+Select the nodes on the approach links
+
+	CREATE OR REPLACE VIEW view_temp_rdnd_point AS
+	 SELECT rn.fid AS rn_fid,
+	    rn.wkb_geometry,
+	    mt1.rl_fid,
+	    mt1.rri_fid,
+	    mt1.objectid,
+	    mt1.directedlink_orientation,
+	    mt1.roadlink_order
+	   FROM roadnode rn,
+	    view_rrirl_mt1 mt1,
+	    roadlink_roadnode rlrn
+	  WHERE mt1.rl_fid::text = rlrn.roadlink_fid::text AND rn.fid::text = rlrn.roadnode_fid;
+	ALTER TABLE view_temp_rdnd_point
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_temp_rdnd_point
+	  IS 'MT Nodes on approach links';
+	  
+Select the nodes on the exit links
+
+	CREATE OR REPLACE VIEW view_temp_rdnd_point2 AS
+	 SELECT rn.fid AS rn_fid,
+	    rn.wkb_geometry,
+	    mt2.rl_fid,
+	    mt2.rri_fid,
+	    mt2.objectid,
+	    mt2.directedlink_orientation,
+	    mt2.roadlink_order
+	   FROM roadnode rn,
+	    view_rrirl_mt2 mt2,
+	    roadlink_roadnode rlrn
+	  WHERE mt2.rl_fid::text = rlrn.roadlink_fid::text AND rn.fid::text = rlrn.roadnode_fid;
+	ALTER TABLE view_temp_rdnd_point2
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_temp_rdnd_point2
+	  IS 'MT Nodes on exit links';
+	  
+
 
 Create no entry restrictions
 ----------------------------
