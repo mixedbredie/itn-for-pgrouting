@@ -798,7 +798,76 @@ Select the nodes on the exit links
 	COMMENT ON VIEW view_temp_rdnd_point2
 	  IS 'MT Nodes on exit links';
 	  
+Select the junction corner point
 
+	CREATE OR REPLACE VIEW view_mt_junction_point AS
+	 SELECT rn.rn_fid,
+	    rn.directedlink_orientation,
+	    rn.rl_fid AS rl_fid1,
+	    rn.objectid AS in_road_id,
+	    rn2.rl_fid AS rl_fid2,
+	    rn2.objectid AS out_road_id,
+	    rn.rri_fid,
+	    rn.wkb_geometry
+	   FROM view_temp_rdnd_point rn,
+	    view_temp_rdnd_point2 rn2
+	  WHERE st_equals(rn.wkb_geometry, rn2.wkb_geometry) AND (rn.directedlink_orientation[1]::text = '-'::text OR rn.directedlink_orientation[1]::text = '+'::text) AND rn.rri_fid::text = rn2.rri_fid::text AND rn.rl_fid::text <> rn2.rl_fid::text
+	ALTER TABLE view_mt_junction_point
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_mt_junction_point
+	  IS 'MT Nodes at junction point of MT';
+	  
+Create a view of the links in the mandatory turn
+
+	CREATE OR REPLACE VIEW view_mt_junction_links AS
+	 SELECT DISTINCT rlrn.roadlink_fid,
+	    jp.rl_fid1,
+	    jp.in_road_id,
+	    jp.rl_fid2,
+	    jp.out_road_id,
+	    jp.directedlink_orientation,
+	    jp.rri_fid,
+	    rl.ogc_fid AS objectid,
+	    rl.wkb_geometry
+	   FROM roadlink_roadnode rlrn,
+	    roadlink rl,
+	    itn_mt_junction_point jp
+	  WHERE jp.rn_fid::text = rlrn.roadnode_fid AND rlrn.roadlink_fid::text = rl.fid::text;
+	ALTER TABLE view_mt_junction_links
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_mt_junction_links
+	  IS 'MT IN and OUT links at junction point of MT';
+
+Create a view of the no turn restrictions in the mandatory turn junction
+
+	CREATE OR REPLACE VIEW view_mt_junction_nt_links AS
+	 SELECT DISTINCT rlrn.roadlink_fid,
+	        CASE
+	            WHEN rlrn.roadlink_fid::text <> jp.rl_fid1::text THEN 2
+	            ELSE 1
+	        END AS join_order,
+	    jp.rl_fid1,
+	    rl.ogc_fid AS objectid,
+	    jp.rri_fid,
+	    rl.wkb_geometry
+	   FROM roadlink_roadnode rlrn,
+	    roadlink rl,
+	    itn_mt_junction_point jp
+	  WHERE jp.rn_fid::text = rlrn.roadnode_fid AND rlrn.roadlink_fid::text = rl.fid::text AND NOT (rlrn.roadlink_fid::text IN ( SELECT rrirl.roadlink_fid
+	           FROM roadrouteinformation rri,
+	            roadrouteinformation_roadlink rrirl,
+	            roadlink rl_1
+	          WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}'::character varying[] AND rrirl.roadlink_order = 1 AND rl_1.fid::text = rrirl.roadlink_fid)) AND NOT (rlrn.roadlink_fid::text IN ( SELECT rrirl.roadlink_fid
+	           FROM roadrouteinformation rri,
+	            roadrouteinformation_roadlink rrirl,
+	            roadlink rl_1
+	          WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}'::character varying[] AND rrirl.roadlink_order = 2 AND rl_1.fid::text = rrirl.roadlink_fid));
+	ALTER TABLE view_mt_junction_nt_links
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_mt_junction_nt_links
+	  IS 'MT All NO TURN links at junction point of MT';
+	  
+These views are turned into a turn restriction table.  Still working on that bit though.
 
 Create no entry restrictions
 ----------------------------
