@@ -874,7 +874,20 @@ Create no entry restrictions
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/616.jpg" alt="No Entry" width="206px">
 A somewhat complex process follows wherein a view of oneway streets is created and then subsequent views of all road links that connect to the end of the one way street and have a restricted turn into it.  The views are combined into a final table in pgRouting turn restriction format.
 
-Coming sooon.
+Create a view to show the first link of the No Entry restriction.
+
+	CREATE OR REPLACE VIEW view_rrirl_ne AS
+	SELECT rrirl.directedlink_href, 
+		rrirl.directedlink_orientation, 
+		rrirl.roadlink_order, 
+		rl.ogc_fid, 
+		rl.wkb_geometry, 
+		rri.ogc_fid AS rri_fid   
+	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
+	WHERE rrirl.roadrouteinformation_fid = rri.MI_PRINX 
+		AND rri.environmentqualifier_instruction = '{No Entry}' 
+		AND rrirl.roadlink_order = 1
+		AND rl.fid = rrirl.directedlink_href;
 
 References
 ----------
