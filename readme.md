@@ -876,18 +876,61 @@ A somewhat complex process follows wherein a view of oneway streets is created a
 
 Create a view to show the first link of the No Entry restriction.
 
-	CREATE OR REPLACE VIEW view_rrirl_ne AS
-	SELECT rrirl.directedlink_href, 
-		rrirl.directedlink_orientation, 
-		rrirl.roadlink_order, 
-		rl.ogc_fid, 
-		rl.wkb_geometry, 
-		rri.ogc_fid AS rri_fid   
-	FROM roadrouteinformation rri, roadrouteinformation_roadlink rrirl, roadlink rl
-	WHERE rrirl.roadrouteinformation_fid = rri.MI_PRINX 
-		AND rri.environmentqualifier_instruction = '{No Entry}' 
-		AND rrirl.roadlink_order = 1
-		AND rl.fid = rrirl.directedlink_href;
+	CREATE OR REPLACE VIEW view_rrirl_ne1 AS 
+	 SELECT rrirl.roadlink_fid,
+	    rri.directedlink_orientation,
+	    rrirl.roadlink_order,
+	    rl.ogc_fid,
+	    rri.ogc_fid AS rri_fid,
+	    rl.wkb_geometry
+	   FROM roadrouteinformation rri,
+	    roadrouteinformation_roadlink rrirl,
+	    roadlink rl
+	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Entry"}'::character varying[] AND rrirl.roadlink_order = 1 AND rl.fid::text = rrirl.roadlink_fid;
+	
+	ALTER TABLE view_rrirl_ne1
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_ne1
+	  IS 'No entry first link';
+	  
+Find the node point on the corner of the No Entry turn:
+
+	CREATE OR REPLACE VIEW view_rrirl_nept AS 
+	 SELECT ne.roadlink_fid,
+	    ne.directedlink_orientation,
+	    ne.ogc_fid,
+	    ne.rri_fid,
+	    rlrn.roadnode_fid,
+	    rn.wkb_geometry
+	   FROM view_rrirl_ne1 ne,
+	    roadlink_roadnode rlrn,
+	    roadnode rn
+	  WHERE ne.directedlink_orientation[1]::text <> rlrn.directednode_orientation::text AND ne.roadlink_fid = rlrn.roadlink_fid::text AND rlrn.roadnode_fid = rn.fid::text;
+	
+	ALTER TABLE view_rrirl_nept
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_nept
+	  IS 'Corner of the No Entry feature';
+	  
+Find the other links that meet at the No Entry point:
+
+	CREATE OR REPLACE VIEW view_rrirl_xyne AS 
+	 SELECT pne.roadlink_fid AS roadlink1,
+	    rl.fid AS roadlink2,
+	    rlrn.directednode_orientation,
+	    rl.ogc_fid,
+	    pne.rri_fid,
+	    pne.roadnode_fid,
+	    rl.wkb_geometry
+	   FROM view_rrirl_nept pne,
+	    roadlink_roadnode rlrn
+	   RIGHT JOIN roadlink rl ON rlrn.roadlink_fid::text = rl.fid::text
+	  WHERE pne.roadnode_fid = rlrn.roadnode_fid AND rl.fid::text <> pne.roadlink_fid;
+	
+	ALTER TABLE view_rrirl_xyne
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_xyne
+	  IS 'ITN Roadlinks with the directed node of No Entry';
 
 References
 ----------
