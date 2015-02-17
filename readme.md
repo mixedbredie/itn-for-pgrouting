@@ -516,9 +516,6 @@ Find the links attached to the problem nodes
 
 pgRouting and QGIS
 ------------------
-<<<<<<< HEAD
-Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality.  Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
-=======
 Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
 
 Further enhancements
@@ -1146,7 +1143,6 @@ Insert the values into the turn restriction table
 	  FROM view_rrirl_gs_nt v
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_gs_nt_restrictions t WHERE t.rid = v.objectid);
->>>>>>> 31b0394e73e89da91b1ec1e594ead0d4aa5fcb62
 
 References
 ----------
