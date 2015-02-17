@@ -383,6 +383,7 @@ Get some stats about your one way streets as well.
 
 pgRouting and QGIS
 ------------------
+Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality.  Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
 
 References
 ----------
