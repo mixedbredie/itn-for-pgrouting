@@ -1034,7 +1034,7 @@ Update the pgRouting turn restriction table with the new turn restrictions:
 
 Grade separation turn restrictions
 ----------------------------------
-
+<img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/low_bridge.jpg" alt="Grade separation" width="206px">
 As an alternative to merging the elevate roadlinks into single sections you can build a turn restriction table that prevents turns to and from links with different grade separations or heights.
 
 Build up an initial view of all nodes in the network
