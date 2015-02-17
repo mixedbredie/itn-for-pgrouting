@@ -1029,6 +1029,121 @@ Update the pgRouting turn restriction table with the new turn restrictions:
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
 
+Grade separation turn restrictions
+----------------------------------
+
+As an alternative to merging the elevate roadlinks into single sections you can build a turn restriction table that prevents turns to and from links with different grade separations or heights.
+
+Build up an initial view of all nodes in the network
+
+	CREATE OR REPLACE VIEW view_rrirl_gs AS 
+	 SELECT rl.ogc_fid,
+	    rl.fid,
+	    rlrn.roadnode_fid,
+	    rlrn.directednode_orientation,
+	    rlrn.directednode_gradeseparation,
+	    rn.wkb_geometry
+	   FROM roadlink rl,
+	    roadlink_roadnode rlrn,
+	    roadnode rn
+	  WHERE rlrn.roadlink_fid::text = rl.fid::text AND rn.fid::text = rlrn.roadnode_fid;
+	
+	ALTER TABLE view_rrirl_gs
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_gs
+	  IS 'Grade separation nodes';
+
+Find all the links at nodes with different heights (grade separation)
+	  
+	CREATE OR REPLACE VIEW view_rrirl_gs1 AS 
+	 SELECT gs.roadnode_fid AS gs_node,
+	    rlrn.roadnode_fid AS rlrn_node,
+	    rlrn.directednode_gradeseparation AS rlrn_gs,
+	    gs.directednode_gradeseparation AS gs_gs,
+	    rlrn.roadlink_fid,
+	    gs.fid AS roadlink1,
+	    gs.directednode_orientation,
+	    rl.fid AS roadlink2
+	   FROM roadlink_roadnode rlrn,
+	    view_rrirl_gs gs,
+	    roadlink rl
+	  WHERE rlrn.roadnode_fid = gs.roadnode_fid AND rlrn.directednode_gradeseparation <> gs.directednode_gradeseparation AND rlrn.roadlink_fid::text = rl.fid::text;
+	
+	ALTER TABLE view_rrirl_gs1
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_gs1
+	  IS 'Grade separation links at nodes with different heights';
+
+Get the ogc_fid value from the one way table for roadlinks at grade separated nodes
+
+	CREATE OR REPLACE VIEW view_rrirl_gs2 AS 
+	 SELECT g.gs_node,
+	    g.rlrn_node,
+	    g.rlrn_gs,
+	    g.gs_gs,
+	    g.roadlink_fid,
+	    g.roadlink1,
+	    e1.ogc_fid AS oneway1,
+	    g.directednode_orientation AS orientation,
+	    g.roadlink2,
+	    e2.ogc_fid AS oneway2
+	   FROM view_rrirl_gs1 g,
+	    view_rl_one_way e1,
+	    view_rl_one_way e2
+	  WHERE e1.fid2::text = g.roadlink1::text AND e2.fid2::text = g.roadlink2::text;
+	
+	ALTER TABLE view_rrirl_gs2
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_gs2
+	  IS 'Grade separation one way OGC_FID value for links with different heights';
+
+Build up a set of turn restrictions
+  
+	CREATE OR REPLACE VIEW view_rrirl_gs_nt AS 
+	 SELECT row_number() OVER () AS objectid,
+	        CASE
+	            WHEN nt1.orientation::text = '{+}'::text THEN 'y'::text
+	            ELSE 'n'::text
+	        END AS edge1end,
+	    nt1.oneway1 AS edge1fid,
+	    0.5 AS edge1pos,
+	    nt1.oneway2 AS edge2fid,
+	    0.5 AS edge2pos
+	   FROM view_rrirl_gs2 nt1;
+	
+	ALTER TABLE view_rrirl_gs_nt
+	  OWNER TO postgres;
+	COMMENT ON VIEW view_rrirl_gs_nt
+	  IS 'Grade separation turn restrictions';
+
+Create a grade separation turn restriction table in pgRouting format
+
+	CREATE TABLE itn_gs_nt_restrictions
+	(
+	  rid integer NOT NULL,
+	  to_cost double precision,
+	  teid integer,
+	  feid integer,
+	  via text
+	)
+	WITH (
+	  OIDS=FALSE
+	);
+	ALTER TABLE itn_gs_nt_restrictions
+	  OWNER TO postgres;
+	COMMENT ON TABLE itn_gs_nt_restrictions
+	  IS 'ITN Grade Separated Turn Restrictions';
+	  
+Insert the values into the turn restriction table
+
+	INSERT INTO itn_gs_nt_restrictions(rid,feid,teid)
+	  SELECT objectid AS rid,
+	  edge1fid AS feid,
+	  edge2fid AS teid 
+	  FROM view_rrirl_gs_nt v
+	  WHERE v.edge2fid <> 0
+	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_gs_nt_restrictions t WHERE t.rid = v.objectid);
+
 References
 ----------
 http://www.ordnancesurvey.co.uk/business-and-government/products/itn-layer.html
