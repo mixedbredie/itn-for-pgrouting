@@ -867,7 +867,50 @@ Create a view of the no turn restrictions in the mandatory turn junction
 	COMMENT ON VIEW view_mt_junction_nt_links
 	  IS 'MT All NO TURN links at junction point of MT';
 	  
-These views are turned into a turn restriction table.  Still working on that bit though.
+These views are turned into a turn restriction table.
+
+	CREATE OR REPLACE VIEW view_rrirl_mt_nt AS
+	SELECT row_number() OVER () AS objectid,
+		CASE WHEN NT1.directedlink_orientation = '{+}' THEN 'y' ELSE 'n' END AS edge1end,
+		E1.ogc_fid AS edge1fid,
+		E2.ogc_fid AS edge2fid,
+	FROM itn_mt_junction_links nt1, 
+		roadrouteinformation rri, 
+		view_rl_one_way e1,
+		view_rl_one_way e2
+	WHERE (nt1.rri_fid = rri.ogc_fid) 
+		AND (E1.fid2 = nt1.roadlink1) 
+		AND (E2.fid2 = nt1.roadlink2); 
+	COMMENT ON VIEW view_rrirl_mt_nt
+	  IS 'MT turn restrictions'; 
+
+Create the mandatory turn restriction table
+
+	CREATE TABLE itn_mt_nt_restrictions
+	(
+	  rid integer NOT NULL,
+	  to_cost double precision,
+	  teid integer,
+	  feid integer,
+	  via text
+	)
+	WITH (
+	  OIDS=FALSE
+	);
+	ALTER TABLE itn_mt_nt_restrictions
+	  OWNER TO postgres;
+	COMMENT ON TABLE itn_mt_nt_restrictions
+	  IS 'ITN No Turn Restrictions';
+
+Insert the values into the turn restriction table
+  
+	INSERT INTO itn_mt_nt_restrictions(rid,feid,teid)
+	  SELECT objectid AS rid,
+	  edge1fid AS feid,
+	  edge2fid AS teid 
+	  FROM view_rrirl_mt_nt v
+	  WHERE v.edge2fid <> 0
+	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_mt_nt_restrictions t WHERE t.rid = v.objectid); 
 
 Create no entry restrictions
 ----------------------------
@@ -932,39 +975,57 @@ Find the other links that meet at the No Entry point:
 	COMMENT ON VIEW view_rrirl_xyne
 	  IS 'ITN Roadlinks with the directed node of No Entry';
 	  
-Create the initial No Entry turn restictions:
+Create the initial No Entry turn restrictions:
 
 	CREATE OR REPLACE VIEW view_rrirl_ne_nt AS
 		SELECT CASE WHEN NT1.directednode_orientation = '-' THEN 'y' ELSE 'n' END AS EDGE1END,
-		--NT_I.EDGEFCID AS EDGE1FCID,
-		NT1.ROADLINK2 AS EDGE1FID,
-		0.5 AS EDGE1POS,
-		--NT_I.EDGEFCID AS EDGE2FCID,
-		NT1.ROADLINK1 AS EDGE2FID,
-		0.5 AS EDGE2POS,
-		0 AS EDGE3FCID,
-		0 AS EDGE3FID,
-		0 AS EDGE3POS,
-		0 AS EDGE4FCID,
-		0 AS EDGE4FID,
-		0 AS EDGE4POS,
-		0 AS EDGE5FCID,
-		0 AS EDGE5FID,
-		0 AS EDGE5POS,
+		NT1.roadlink2 AS EDGE1FID,
+		NT1.roadlink1 AS EDGE2FID,
 		row_number() OVER () AS objectid
 		FROM view_rrirl_xyne NT1, roadrouteinformation RRI,  
 		view_rl_one_way E1,
 		view_rl_one_way E2
 		WHERE (nt1.rri_fid = rri.ogc_fid) 
-		AND (E1.FID2 = NT1.ROADLINK1) 
-		AND (E2.FID2 = NT1.ROADLINK2);
+		AND (E1.FID2 = NT1.roadlink1) 
+		AND (E2.FID2 = NT1.roadlink2);
 	COMMENT ON VIEW view_rrirl_ne_nt
 		  IS 'No Entry Turn Restrictions';
 		  
+Create a No Entry turn restriction table:
+
+	CREATE TABLE itn_ne_nt_restrictions
+	(
+	  rid integer NOT NULL,
+	  to_cost double precision,
+	  teid integer,
+	  feid integer,
+	  via text
+	)
+	WITH (
+	  OIDS=FALSE
+	);
+	ALTER TABLE itn_ne_nt_restrictions
+	  OWNER TO postgres;
+	COMMENT ON TABLE itn_ne_nt_restrictions
+	  IS 'ITN No Turn Restrictions';
+
+Insert the values into the turn restriction table:
+
+	INSERT INTO itn_ne_nt_restrictions(rid,feid,teid)
+	  SELECT objectid AS rid,
+	  edge1fid AS feid,
+	  edge2fid AS teid 
+	  FROM view_rrirl_ne_nt v
+	  WHERE v.edge2fid <> 0
+	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_ne_nt_restrictions t WHERE t.rid = v.objectid);
+
 Update the pgRouting turn restriction table with the new turn restrictions:
 
 	INSERT INTO itn_nt_restrictions(rid,feid,teid)
-	  SELECT objectid AS rid,edge1fid AS feid,edge2fid AS teid FROM view_rrirl_ne_nt v
+	  SELECT objectid AS rid,
+	  edge1fid AS feid,
+	  edge2fid AS teid 
+	  FROM view_rrirl_ne_nt v
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
 
