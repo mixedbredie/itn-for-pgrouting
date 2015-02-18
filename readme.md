@@ -1062,8 +1062,11 @@ Find all the links at nodes with different heights (grade separation)
 	    gs.directednode_gradeseparation AS gs_gs,
 	    rlrn.roadlink_fid,
 	    gs.fid AS roadlink1,
+	    gs.ogc_fid AS ogc_fid1,
 	    gs.directednode_orientation,
-	    rl.fid AS roadlink2
+	    rl.fid AS roadlink2,
+	    rl.ogc_fid AS ogc_fid2,
+	    rl.wkb_geometry
 	   FROM roadlink_roadnode rlrn,
 	    view_rrirl_gs gs,
 	    roadlink rl
@@ -1074,29 +1077,6 @@ Find all the links at nodes with different heights (grade separation)
 	COMMENT ON VIEW view_rrirl_gs1
 	  IS 'Grade separation links at nodes with different heights';
 
-Get the ogc_fid value from the one way table for roadlinks at grade separated nodes
-
-	CREATE OR REPLACE VIEW view_rrirl_gs2 AS 
-	 SELECT g.gs_node,
-	    g.rlrn_node,
-	    g.rlrn_gs,
-	    g.gs_gs,
-	    g.roadlink_fid,
-	    g.roadlink1,
-	    e1.ogc_fid AS oneway1,
-	    g.directednode_orientation AS orientation,
-	    g.roadlink2,
-	    e2.ogc_fid AS oneway2
-	   FROM view_rrirl_gs1 g,
-	    view_rl_one_way e1,
-	    view_rl_one_way e2
-	  WHERE e1.fid2::text = g.roadlink1::text AND e2.fid2::text = g.roadlink2::text;
-	
-	ALTER TABLE view_rrirl_gs2
-	  OWNER TO postgres;
-	COMMENT ON VIEW view_rrirl_gs2
-	  IS 'Grade separation one way OGC_FID value for links with different heights';
-
 Build up a set of turn restrictions
   
 	CREATE OR REPLACE VIEW view_rrirl_gs_nt AS 
@@ -1105,11 +1085,11 @@ Build up a set of turn restrictions
 	            WHEN nt1.orientation::text = '{+}'::text THEN 'y'::text
 	            ELSE 'n'::text
 	        END AS edge1end,
-	    nt1.oneway1 AS edge1fid,
+	    nt1.ogc_fid1 AS edge1fid,
 	    0.5 AS edge1pos,
-	    nt1.oneway2 AS edge2fid,
+	    nt1.ogc_fid2 AS edge2fid,
 	    0.5 AS edge2pos
-	   FROM view_rrirl_gs2 nt1;
+	   FROM view_rrirl_gs1 nt1;
 	
 	ALTER TABLE view_rrirl_gs_nt
 	  OWNER TO postgres;
@@ -1143,6 +1123,14 @@ Insert the values into the turn restriction table
 	  FROM view_rrirl_gs_nt v
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_gs_nt_restrictions t WHERE t.rid = v.objectid);
+	  
+	UPDATE itn_gs_nt_restrictions SET to_cost = 9999;
+
+Test this in QGIS with the pgRouting Layer plugin and the TRSP(vertext) or (edge) functions.  The turn restriction SQL to use is:
+
+	'select to_cost, teid as target_id, feid||coalesce('',''||via,'''') as via_path from itn_gs_nt_restrictions'
+
+This eliminates the need to mess around with merging elevated geometries and just uses the turn restrictions and costs to route across the network.
 
 References
 ----------
