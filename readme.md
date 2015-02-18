@@ -374,7 +374,7 @@ This joins the grade separation view to the network table and updates the "grade
 
 Rebuild elevated sections
 -------------------------
-Work in progress
+Don't really need to do this.  Use turn restrictions instead - See https://github.com/mixedbredie/itn-for-pgrouting/blob/master/readme.md#grade-separation-turn-restrictions
 
 Populate pgRouting fields
 -------------------------
@@ -959,16 +959,18 @@ Find the other links that meet at the No Entry point:
 
 	CREATE OR REPLACE VIEW view_rrirl_xyne AS 
 	 SELECT pne.roadlink_fid AS roadlink1,
+	    pne.ogc_fid AS ogc_fid1,
 	    rl.fid AS roadlink2,
+	    rl.ogc_fid AS ogc_fid2,
 	    rlrn.directednode_orientation,
-	    rl.ogc_fid,
 	    pne.rri_fid,
 	    pne.roadnode_fid,
 	    rl.wkb_geometry
 	   FROM view_rrirl_nept pne,
 	    roadlink_roadnode rlrn
 	   RIGHT JOIN roadlink rl ON rlrn.roadlink_fid::text = rl.fid::text
-	  WHERE pne.roadnode_fid = rlrn.roadnode_fid AND rl.fid::text <> pne.roadlink_fid;
+	  WHERE pne.roadnode_fid = rlrn.roadnode_fid AND rl.fid::text <> pne.roadlink_fid
+	  ORDER BY pne.ogc_fid;
 	
 	ALTER TABLE view_rrirl_xyne
 	  OWNER TO postgres;
@@ -977,19 +979,25 @@ Find the other links that meet at the No Entry point:
 	  
 Create the initial No Entry turn restrictions:
 
-	CREATE OR REPLACE VIEW view_rrirl_ne_nt AS
-		SELECT CASE WHEN NT1.directednode_orientation = '-' THEN 'y' ELSE 'n' END AS EDGE1END,
-		NT1.roadlink2 AS EDGE1FID,
-		NT1.roadlink1 AS EDGE2FID,
-		row_number() OVER () AS objectid
-		FROM view_rrirl_xyne NT1, roadrouteinformation RRI,  
-		view_rl_one_way E1,
-		view_rl_one_way E2
-		WHERE (nt1.rri_fid = rri.ogc_fid) 
-		AND (E1.FID2 = NT1.roadlink1) 
-		AND (E2.FID2 = NT1.roadlink2);
+	CREATE OR REPLACE VIEW view_rrirl_ne_nt AS 
+	 SELECT
+	        CASE
+	            WHEN nt1.directednode_orientation::text = '-'::text THEN 'y'::text
+	            ELSE 'n'::text
+	        END AS edge1end,
+	    COALESCE(nt1.ogc_fid2) AS edge1fid,
+	    0.5 AS edge1pos,
+	    COALESCE(nt1.ogc_fid1) AS edge2fid,
+	    0.5 AS edge2pos,
+	    row_number() OVER () AS objectid
+	   FROM view_rrirl_xyne2 nt1,
+	    roadrouteinformation rri
+	  WHERE nt1.rri_fid = rri.ogc_fid;
+	
+	ALTER TABLE view_rrirl_ne_nt
+	  OWNER TO postgres;
 	COMMENT ON VIEW view_rrirl_ne_nt
-		  IS 'No Entry Turn Restrictions';
+	  IS 'No Entry Turn Restrictions';
 		  
 Create a No Entry turn restriction table:
 
@@ -1018,6 +1026,8 @@ Insert the values into the turn restriction table:
 	  FROM view_rrirl_ne_nt v
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_ne_nt_restrictions t WHERE t.rid = v.objectid);
+	  
+	UPDATE itn_ne_nt_restrictions SET to_cost = 9999;
 
 Update the pgRouting turn restriction table with the new turn restrictions:
 
