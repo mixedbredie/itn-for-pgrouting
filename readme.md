@@ -163,6 +163,8 @@ This is a work in progress here but pgRouting has some issues with bridges being
 
     ALTER TABLE view_itn_bridges
       OWNER TO postgres;
+      
+Possible a better way of doing this is to use turn restrictions for the grade separations.  See the end of the document for more information.
 
 Create network table
 --------------------
@@ -816,7 +818,7 @@ Select the junction corner point
 	COMMENT ON VIEW view_mt_junction_point
 	  IS 'MT Nodes at junction point of MT';
 	  
-Create a view of the links in the mandatory turn
+Create a view of the links in the mandatory turn (not really necessary but good for checking)
 
 	CREATE OR REPLACE VIEW view_mt_junction_links AS
 	 SELECT DISTINCT rlrn.roadlink_fid,
@@ -837,51 +839,48 @@ Create a view of the links in the mandatory turn
 	COMMENT ON VIEW view_mt_junction_links
 	  IS 'MT IN and OUT links at junction point of MT';
 
-Create a view of the no turn restrictions in the mandatory turn junction
+Create a view of the approach road and no turn restrictions in the mandatory turn junction:
 
-	CREATE OR REPLACE VIEW view_mt_junction_nt_links AS
+	CREATE OR REPLACE VIEW view_mt_junction_mt1_nt_links AS 
 	 SELECT DISTINCT rlrn.roadlink_fid,
 	        CASE
-	            WHEN rlrn.roadlink_fid::text <> jp.rl_fid1::text THEN 2
+	            WHEN rlrn.roadlink_fid::text <> jp.roadlink1 THEN 2
 	            ELSE 1
 	        END AS join_order,
-	    jp.rl_fid1,
-	    rl.ogc_fid AS objectid,
+	    jp.roadlink1,
+	    jp.ogc_fid1,
+	    jp.roadlink2,
+	    jp.ogc_fid2,
 	    jp.rri_fid,
+	    rl.ogc_fid AS objectid,
 	    rl.wkb_geometry
 	   FROM roadlink_roadnode rlrn,
 	    roadlink rl,
-	    itn_mt_junction_point jp
+	    itn_mt_jp jp
 	  WHERE jp.rn_fid::text = rlrn.roadnode_fid AND rlrn.roadlink_fid::text = rl.fid::text AND NOT (rlrn.roadlink_fid::text IN ( SELECT rrirl.roadlink_fid
 	           FROM roadrouteinformation rri,
 	            roadrouteinformation_roadlink rrirl,
 	            roadlink rl_1
-	          WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}'::character varying[] AND rrirl.roadlink_order = 1 AND rl_1.fid::text = rrirl.roadlink_fid)) AND NOT (rlrn.roadlink_fid::text IN ( SELECT rrirl.roadlink_fid
-	           FROM roadrouteinformation rri,
-	            roadrouteinformation_roadlink rrirl,
-	            roadlink rl_1
 	          WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"Mandatory Turn"}'::character varying[] AND rrirl.roadlink_order = 2 AND rl_1.fid::text = rrirl.roadlink_fid));
-	ALTER TABLE view_mt_junction_nt_links
+	
+	ALTER TABLE view_mt_junction_mt1_nt_links
 	  OWNER TO postgres;
-	COMMENT ON VIEW view_mt_junction_nt_links
-	  IS 'MT All NO TURN links at junction point of MT';
+	COMMENT ON VIEW view_mt_junction_mt1_nt_links
+	  IS 'MT NO TURN links at junction point of MT';
 	  
 These views are turned into a turn restriction table.
 
-	CREATE OR REPLACE VIEW view_rrirl_mt_nt AS
-	SELECT row_number() OVER () AS objectid,
-		CASE WHEN NT1.directedlink_orientation = '{+}' THEN 'y' ELSE 'n' END AS edge1end,
-		E1.ogc_fid AS edge1fid,
-		E2.ogc_fid AS edge2fid,
-	FROM itn_mt_junction_links nt1, 
-		roadrouteinformation rri, 
-		view_rl_one_way e1,
-		view_rl_one_way e2
-	WHERE (nt1.rri_fid = rri.ogc_fid) 
-		AND (E1.fid2 = nt1.roadlink1) 
-		AND (E2.fid2 = nt1.roadlink2); 
+	CREATE OR REPLACE VIEW view_rrirl_mt_nt AS 
+	 SELECT row_number() OVER () AS objectid,
+	    nt1.ogc_fid1 AS edge1fid,
+	    nt1.objectid AS edge2fid
+	   FROM view_mt_junction_mt1_nt_links nt1
+	  WHERE nt1.roadlink1 <> nt1.roadlink_fid::text;
+	
+	ALTER TABLE view_rrirl_mt_nt
+	  OWNER TO postgres;
 	COMMENT ON VIEW view_rrirl_mt_nt
-	  IS 'MT turn restrictions'; 
+	  IS 'MT turn restrictions';
 
 Create the mandatory turn restriction table
 
