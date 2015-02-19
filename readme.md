@@ -364,21 +364,15 @@ Now we will create a function to use the roadlink table and the grade separation
 	ALTER FUNCTION create_itn_network()
 	  OWNER TO postgres;
 
-Update one way field
---------------------
-This joins the one way view to the network table and updates the "oneway" field with a 1 or 0 depending.
+To run the function and populate the itn_network table do:
 
-Update grade separation fields
-------------------------------
-This joins the grade separation view to the network table and updates the "gradeseparation_s" and "gradeseparation_e" fields with a 1 or 0 depending.
-
-Rebuild elevated sections
--------------------------
-Don't really need to do this.  Use turn restrictions instead - See https://github.com/mixedbredie/itn-for-pgrouting/blob/master/readme.md#grade-separation-turn-restrictions
+	SELECT create_itn_network();
+	
+Wait a while (depending on how large your network is) and then check the table when the function has finished running.  So now we have a table with all the network fields in it and some of the information populated.  Let's add some more.
 
 Populate pgRouting fields
 -------------------------
-pgRouting requires a number of field to be present and populated in order for the routing algorithms to work.  First, update the coordinates for the start and end of the road link.
+pgRouting requires a number of field to be present and populated in order for the routing algorithms to work.  First, update the coordinates for the start and end of the road link.  This is used in the _astar_, _TSP_ and _bdAstar_ functions.
 
     UPDATE itn_network 
 	SET x1 = st_x(st_startpoint(geometry)),
@@ -394,18 +388,18 @@ pgRouting use costs to determine the best routes across the network.  Costs can 
 
 Setting costs for one way streets using the "rl_attribute" set earlier in the network build function.
 
-	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute < 500;
-	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute < 500;
-	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute > 500 and rl_attribute < 1000;
-	UPDATE itn_network SET rcost_len = cost_len*1000 WHERE rl_attribute > 500 and rl_attribute < 1000;
-	UPDATE itn_network SET cost_len = ST_Length(geometry)*1000 WHERE rl_attribute > 1000;
-	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute > 1000;
+	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute < 500; --two way streets
+	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute < 500; --two way streets
+	UPDATE itn_network SET cost_len = ST_Length(geometry) WHERE rl_attribute > 500 and rl_attribute < 1000; --one way streets in digitised direction
+	UPDATE itn_network SET rcost_len = cost_len*1000 WHERE rl_attribute > 500 and rl_attribute < 1000; --one way streets in digitised direction
+	UPDATE itn_network SET cost_len = ST_Length(geometry)*1000 WHERE rl_attribute > 1000; --one way streets against digitised direction
+	UPDATE itn_network SET rcost_len = ST_Length(geometry) WHERE rl_attribute > 1000; --one way streets against digitised direction
 
 pgRouting offers some tools to analyse your road network for valid one way streets and we can use those to check for errors.   First we need to populate the "one_way" field with the values required for the function to work:
 
 	UPDATE itn_network SET one_way = 'B' WHERE rl_attribute < 500;
-    UPDATE itn_network SET one_way = 'TF' WHERE rl_attribute > 500 AND rl_attribute < 1000;
-    UPDATE itn_network SET one_way = 'FT' WHERE rl_attribute > 1000;
+	UPDATE itn_network SET one_way = 'TF' WHERE rl_attribute > 500 AND rl_attribute < 1000;
+	UPDATE itn_network SET one_way = 'FT' WHERE rl_attribute > 1000;
 
 Calculate network time costs
 ----------------------------
@@ -470,11 +464,15 @@ Then use the speed and road link length to calculate a time cost for each road l
         WHEN one_way='FT' THEN 10000.0
         ELSE cost_len/1000.0/rl_speed::numeric*3600.0
         END;
+        
+Check the table to make sure the fields have been updated with appropriate values.  Now it's time to build the network.
 
 Build pgRouting topology
 ------------------------
     
     SELECT pgr_createTopology('osmm_itn.itn_network', 0.001, 'wkb_geometry', 'gid', 'source', 'target');
+    
+This create a new table in the database called itn_network_vertices_pgr and contains the nodes joining the links of the network.
     
 Analyse network topology
 ------------------------
@@ -516,11 +514,11 @@ Find the links attached to the problem nodes
 
 pgRouting and QGIS
 ------------------
-Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
+Your network table is now ready for some quick and dirty routing.  Install the pgRouting Layer plugin in QGIS and you have an easy to use interface to all the pgRouting functionality. Plugin details here: http://plugins.qgis.org/plugins/pgRoutingLayer/
 
 Further enhancements
 --------------------
-The network can be enhanced by modelling no turn restrictions, mandatory turn restrictions and no entry streets.  The sections below outline the process.  There is much room for improvement here.
+The network can be enhanced by modelling no turn restrictions, mandatory turn restrictions, grade separations and no entry streets.  The sections below outline the process.  There is much room for improvement here and this section may change as I work out better ways of doing things.
 
 Create no turn restrictions
 ---------------------------
