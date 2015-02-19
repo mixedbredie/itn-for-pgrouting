@@ -1206,3 +1206,6 @@ http://docs.pgrouting.org/dev/doc/src/tutorial/analytics.html
 http://www.archaeogeek.com/blog/2012/08/17/pgrouting-with-ordnance-survey-itn-data/
 
 http://anitagraser.com/?s=pgrouting
+
+Building ITN for pgRouting by Ross McDonald is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
+Based on a work at https://github.com/mixedbredie/itn-for-pgrouting.
