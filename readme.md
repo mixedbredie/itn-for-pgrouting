@@ -981,15 +981,9 @@ Create the initial No Entry turn restrictions:
 
 	CREATE OR REPLACE VIEW view_rrirl_ne_nt AS 
 	 SELECT
-	        CASE
-	            WHEN nt1.directednode_orientation::text = '-'::text THEN 'y'::text
-	            ELSE 'n'::text
-	        END AS edge1end,
+	    row_number() OVER () AS objectid,
 	    COALESCE(nt1.ogc_fid2) AS edge1fid,
-	    0.5 AS edge1pos,
-	    COALESCE(nt1.ogc_fid1) AS edge2fid,
-	    0.5 AS edge2pos,
-	    row_number() OVER () AS objectid
+	    COALESCE(nt1.ogc_fid1) AS edge2fid
 	   FROM view_rrirl_xyne2 nt1,
 	    roadrouteinformation rri
 	  WHERE nt1.rri_fid = rri.ogc_fid;
