@@ -582,13 +582,10 @@ First link (these take some time - improvements?)
 	    rri.datetimequalifier,
 	    rl.wkb_geometry,
 	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid,
-	    nt_i.edgefcid AS edge1fcid,
-	    nt_i.edgepos AS edge1pos
+	    rl.fid2 AS fid
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
-	    view_rl_one_way rl,
-	    itn_rrirl_nt_info nt_i
+	    view_rl_one_way rl
 	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 1;
 	
 	ALTER TABLE view_rrirl_nt1
@@ -608,13 +605,10 @@ Second link
 	    rri.datetimequalifier,
 	    rl.wkb_geometry,
 	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid,
-	    nt_i.edgefcid AS edge2fcid,
-	    nt_i.edgepos AS edge2pos
+	    rl.fid2 AS fid
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
-	    view_rl_one_way rl,
-	    itn_rrirl_nt_info nt_i
+	    view_rl_one_way rl
 	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 2;
 	
 	ALTER TABLE view_rrirl_nt2
@@ -634,13 +628,10 @@ Third link
 	    rri.datetimequalifier,
 	    rl.wkb_geometry,
 	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid,
-	    nt_i.edgefcid AS edge3fcid,
-	    nt_i.edgepos AS edge3pos
+	    rl.fid2 AS fid
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
-	    view_rl_one_way rl,
-	    itn_rrirl_nt_info nt_i
+	    view_rl_one_way rl
 	  WHERE rrirl.roadrouteinformation_fid::text = rri.fid::text AND rri.environmentqualifier_instruction = '{"No Turn"}'::character varying[] AND rl.fid2::text = rrirl.roadlink_fid AND rrirl.roadlink_order = 3;
 	
 	ALTER TABLE view_rrirl_nt3
@@ -652,22 +643,11 @@ Combined view of all turn restricted links
 
 	CREATE OR REPLACE VIEW view_rrirl_nt AS 
 	 SELECT nt1.objectid,
-	        CASE
-	            WHEN nt1.directedlink_orientation[1]::text = '+'::text THEN 'y'::text
-	            ELSE 'n'::text
-	        END AS edge1end,
-	    COALESCE(nt1.edge1fcid) AS edge1fcid,
 	    COALESCE(nt1.ogc_fid, 0) AS edge1fid,
-	    COALESCE(nt1.edge1pos, 0::double precision) AS edge1pos,
-	    COALESCE(nt2.edge2fcid) AS edge2fcid,
 	    COALESCE(nt2.ogc_fid, 0) AS edge2fid,
-	    COALESCE(nt2.edge2pos, 0::double precision) AS edge2pos,
-	    COALESCE(nt3.edge3fcid) AS edge3fcid,
 	    COALESCE(nt3.ogc_fid, 0) AS edge3fid,
-	    COALESCE(nt3.edge3pos, 0::double precision) AS edge3pos,
 	    nt1.wkb_geometry
-	   FROM itn_rrirl_nt_info nt_i,
-	    view_rrirl_nt1 nt1
+	   FROM view_rrirl_nt1 nt1
 	   LEFT JOIN view_rrirl_nt2 nt2 ON nt1.objectid = nt2.objectid
 	   LEFT JOIN view_rrirl_nt3 nt3 ON nt1.objectid = nt3.objectid;
 	
@@ -818,7 +798,7 @@ Select the junction corner point
 	COMMENT ON VIEW view_mt_junction_point
 	  IS 'MT Nodes at junction point of MT';
 	  
-Create a view of the links in the mandatory turn (not really necessary but good for checking)
+*Create a view of the links in the mandatory turn (not really necessary but good for checking)
 
 	CREATE OR REPLACE VIEW view_mt_junction_links AS
 	 SELECT DISTINCT rlrn.roadlink_fid,
@@ -839,7 +819,7 @@ Create a view of the links in the mandatory turn (not really necessary but good 
 	COMMENT ON VIEW view_mt_junction_links
 	  IS 'MT IN and OUT links at junction point of MT';
 
-Create a view of the approach road and no turn restrictions in the mandatory turn junction:
+Create a view of the approach road and no turn restrictions in the mandatory turn junction (_needs some work - could be done easier, I think_):
 
 	CREATE OR REPLACE VIEW view_mt_junction_mt1_nt_links AS 
 	 SELECT DISTINCT rlrn.roadlink_fid,
@@ -1075,14 +1055,8 @@ Build up a set of turn restrictions
   
 	CREATE OR REPLACE VIEW view_rrirl_gs_nt AS 
 	 SELECT row_number() OVER () AS objectid,
-	        CASE
-	            WHEN nt1.orientation::text = '{+}'::text THEN 'y'::text
-	            ELSE 'n'::text
-	        END AS edge1end,
 	    nt1.ogc_fid1 AS edge1fid,
-	    0.5 AS edge1pos,
 	    nt1.ogc_fid2 AS edge2fid,
-	    0.5 AS edge2pos
 	   FROM view_rrirl_gs1 nt1;
 	
 	ALTER TABLE view_rrirl_gs_nt
@@ -1108,7 +1082,7 @@ Create a grade separation turn restriction table in pgRouting format
 	COMMENT ON TABLE itn_gs_nt_restrictions
 	  IS 'ITN Grade Separated Turn Restrictions';
 	  
-Insert the values into the turn restriction table
+Insert the values into the grade separation turn restriction table:
 
 	INSERT INTO itn_gs_nt_restrictions(rid,feid,teid)
 	  SELECT objectid AS rid,
@@ -1172,7 +1146,7 @@ Use the following SQL in QGIS to test the turn restrictions:
 
 Other bits
 ----------
-ITN contains a lot of information in the RRI tables.  You can add height restrictions to your network.
+ITN contains a lot of information in the RRI tables.  You can add height restrictions to your network.  I'm not sure how to get pgRouting to use it but build it in and it will come...
 
 First, create a view to cross reference the roadlink and roadlinkinformation tables.
 
@@ -1212,6 +1186,12 @@ Finally, update the network table with the height restrictions:
 	UPDATE itn_network SET rl_height = CAST(ht.rl_height AS numeric) 
 	FROM view_itn_heightrestriction ht 
 	WHERE itn_network.toid = ht.roadlink_fid;
+	
+In closing
+----------
+Well done for making it this far.  It took me several months to get here.  You should now have a working network based on ITN complete with turn restrictions.  The guide is intended to be used as a "copy and paste" exercise and I think there are enough comments in here to help you out.  Some of the views I turned into tables and added both spatial gist and btree indexes on relevant fields to speed things up.  This can be done simply through:
+	
+	CREATE TABLE my_table AS SELECT * FROM my_view;
 
 References
 ----------
