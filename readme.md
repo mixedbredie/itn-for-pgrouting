@@ -705,6 +705,8 @@ Populate the turn restriction table from the combined view
 	  SELECT objectid AS rid,edge1fid AS feid,edge3fid AS teid FROM view_rrirl_nt v
 	  WHERE v.edge3fid <> 0
 	  AND v.edge3fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
+	  
+	UPDATE itn_nt_restrictions SET to_cost = 9999;
 
 Test the turn restrictions using the Turn Restricted Shortest Path (TRSP) algorithm
 
@@ -718,7 +720,6 @@ Test the turn restrictions using the Turn Restricted Shortest Path (TRSP) algori
 	    false, -- has_reverse_cost?
 	              -- include the turn restrictions
 	    'SELECT to_cost, teid AS target_id, feid||coalesce('',''||via,'''') AS via_path FROM itn_nt_restrictions');
-
 
 Create mandatory turn restrictions
 ----------------------------------
@@ -911,6 +912,8 @@ Insert the values into the turn restriction table
 	  FROM view_rrirl_mt_nt v
 	  WHERE v.edge2fid <> 0
 	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_mt_nt_restrictions t WHERE t.rid = v.objectid); 
+	  
+	UPDATE itn_mt_nt_restrictions SET to_cost = 9999;
 
 Create no entry restrictions
 ----------------------------
@@ -1029,16 +1032,6 @@ Insert the values into the turn restriction table:
 	  
 	UPDATE itn_ne_nt_restrictions SET to_cost = 9999;
 
-Update the pgRouting turn restriction table with the new turn restrictions:
-
-	INSERT INTO itn_nt_restrictions(rid,feid,teid)
-	  SELECT objectid AS rid,
-	  edge1fid AS feid,
-	  edge2fid AS teid 
-	  FROM view_rrirl_ne_nt v
-	  WHERE v.edge2fid <> 0
-	  AND v.edge2fid NOT IN (SELECT DISTINCT t.teid FROM itn_nt_restrictions t WHERE t.rid = v.objectid);
-
 Grade separation turn restrictions
 ----------------------------------
 <img src="https://github.com/mixedbredie/itn-for-pgrouting/raw/master/images/low_bridge.jpg" alt="Grade separation" width="206px">
@@ -1141,6 +1134,50 @@ Test this in QGIS with the pgRouting Layer plugin and the TRSP(vertext) or (edge
 	'select to_cost, teid as target_id, feid||coalesce('',''||via,'''') as via_path from itn_gs_nt_restrictions'
 
 This eliminates the need to mess around with merging elevated geometries and just uses the turn restrictions and costs to route across the network.
+
+Combine Turn Restrictions
+-------------------------
+
+We have now created four turn restriction tables - no entries, mandatory turns, no turns and grade separations.
+
+	itn_nt_restrictions
+	itn_gs_nt_restrictions
+	itn_mt_nt_restrictions
+	itn_ne_nt_restrictions
+
+These can all be tested in QGIS using the Trun Restricted Shortest Path function.  Let's combine these so all turn restrictions are in one table. The No Turn restrictions already exist so we'll add the other turns to the same table:
+
+	INSERT INTO itn_nt_restrictions(rid,feid,teid)
+	  SELECT row_number() over() AS rid,
+	  v.feid AS feid,
+	  v.teid AS teid
+	  FROM itn_gs_nt_restrictions v
+	  WHERE v.teid <> 0
+	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
+	  FROM itn_nt_restrictions t 
+	  WHERE t.rid = v.rid) 
+	UNION
+	  SELECT row_number() over() AS rid,
+	  v.feid AS feid,
+	  v.teid AS teid
+	  FROM itn_mt_nt_restrictions v
+	  WHERE v.teid <> 0
+	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
+	  FROM itn_nt_restrictions t 
+	  WHERE t.rid = v.rid)
+	UNION
+	  SELECT row_number() over() AS rid,
+	  v.feid AS feid,
+	  v.teid AS teid
+	  FROM itn_ne_nt_restrictions v
+	  WHERE v.teid <> 0
+	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
+	  FROM itn_nt_restrictions t 
+	  WHERE t.rid = v.rid);
+
+Use the following SQL in QGIS to test the turn restrictions:
+
+	'select to_cost, teid as target_id, feid||coalesce('',''||via,'''') as via_path from itn_nt_restrictions'
 
 References
 ----------
