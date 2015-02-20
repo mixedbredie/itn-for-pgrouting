@@ -572,17 +572,16 @@ Turns can be made up of a number of edges, or links, and the views below select 
 
 First link (these take some time - improvements?)
 
+	-- View: view_rrirl_nt1
+	-- DROP VIEW view_rrirl_nt1;
 	CREATE OR REPLACE VIEW view_rrirl_nt1 AS 
 	 SELECT rrirl.roadlink_fid,
+	    rl.ogc_fid AS objectid,
 	    rri.directedlink_orientation,
 	    rrirl.roadlink_order,
 	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
-	    rri.ogc_fid,
-	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
-	    rri.datetimequalifier,
-	    rl.wkb_geometry,
-	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid
+	    rri.ogc_fid AS rri_ogc_fid,
+	    rl.wkb_geometry
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
 	    view_rl_one_way rl
@@ -595,17 +594,16 @@ First link (these take some time - improvements?)
 
 Second link
 
+	-- View: view_rrirl_nt2
+	-- DROP VIEW view_rrirl_nt2;
 	CREATE OR REPLACE VIEW view_rrirl_nt2 AS 
 	 SELECT rrirl.roadlink_fid,
+	    rl.ogc_fid AS objectid,
 	    rri.directedlink_orientation,
 	    rrirl.roadlink_order,
 	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
-	    rri.ogc_fid,
-	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
-	    rri.datetimequalifier,
-	    rl.wkb_geometry,
-	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid
+	    rri.ogc_fid AS rri_ogc_fid,
+	    rl.wkb_geometry
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
 	    view_rl_one_way rl
@@ -618,17 +616,16 @@ Second link
 
 Third link
 
+	-- View: view_rrirl_nt3
+	-- DROP VIEW view_rrirl_nt3;
 	CREATE OR REPLACE VIEW view_rrirl_nt3 AS 
 	 SELECT rrirl.roadlink_fid,
+	    rl.ogc_fid AS objectid,
 	    rri.directedlink_orientation,
 	    rrirl.roadlink_order,
 	    array_to_string(rri.environmentqualifier_instruction, ', '::text) AS environmentqualifier_instruction,
-	    rri.ogc_fid,
-	    array_to_string(rri.vehiclequalifier_type, ', '::text) AS array_to_string,
-	    rri.datetimequalifier,
-	    rl.wkb_geometry,
-	    rl.ogc_fid AS objectid,
-	    rl.fid2 AS fid
+	    rri.ogc_fid AS rri_ogc_fid,
+	    rl.wkb_geometry
 	   FROM roadrouteinformation rri,
 	    roadrouteinformation_roadlink rrirl,
 	    view_rl_one_way rl
@@ -639,21 +636,25 @@ Third link
 	COMMENT ON VIEW view_rrirl_nt3
 	  IS 'No Turn Third Link';
 
-Combined view of all turn restricted links
 
+Combined view of all turn restricted links:
+
+	-- View: view_rrirl_nt
+	-- DROP VIEW view_rrirl_nt;
 	CREATE OR REPLACE VIEW view_rrirl_nt AS 
-	 SELECT nt1.objectid,
-	    COALESCE(nt1.ogc_fid, 0) AS edge1fid,
-	    COALESCE(nt2.ogc_fid, 0) AS edge2fid,
-	    COALESCE(nt3.ogc_fid, 0) AS edge3fid,
+	 SELECT nt1.rri_ogc_fid AS objectid,
+	    COALESCE(nt1.objectid, 0) AS edge1fid,
+	    COALESCE(nt2.objectid, 0) AS edge2fid,
+	    COALESCE(nt3.objectid, 0) AS edge3fid,
 	    nt1.wkb_geometry
-	   FROM view_rrirl_nt1 nt1
-	   LEFT JOIN view_rrirl_nt2 nt2 ON nt1.objectid = nt2.objectid
-	   LEFT JOIN view_rrirl_nt3 nt3 ON nt1.objectid = nt3.objectid;
+	   FROM view_rrirl_nt1_2 nt1
+	   LEFT JOIN view_rrirl_nt2_2 nt2 ON nt1.rri_ogc_fid = nt2.rri_ogc_fid
+	   LEFT JOIN view_rrirl_nt3_2 nt3 ON nt1.rri_ogc_fid = nt3.rri_ogc_fid
+	  ORDER BY COALESCE(nt1.objectid, 0);
 	
-	ALTER TABLE view_rrirl_nt
+	ALTER TABLE view_rrirl_nt_2
 	  OWNER TO postgres;
-	COMMENT ON VIEW view_rrirl_nt
+	COMMENT ON VIEW view_rrirl_nt_2
 	  IS 'No Turn All roadlinks in turn restriction';
 
 Create the turn restriction table in pgRouting format
