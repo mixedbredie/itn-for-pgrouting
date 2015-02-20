@@ -1117,7 +1117,7 @@ These can all be tested in QGIS using the Trun Restricted Shortest Path function
 	  SELECT row_number() over() AS rid,
 	  v.feid AS feid,
 	  v.teid AS teid
-	  FROM itn_gs_nt_restrictions v
+	  FROM itn_gs_nt_restrictions v -- Grade Separation Turn Restrictions
 	  WHERE v.teid <> 0
 	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
 	  FROM itn_nt_restrictions t 
@@ -1126,7 +1126,7 @@ These can all be tested in QGIS using the Trun Restricted Shortest Path function
 	  SELECT row_number() over() AS rid,
 	  v.feid AS feid,
 	  v.teid AS teid
-	  FROM itn_mt_nt_restrictions v
+	  FROM itn_mt_nt_restrictions v -- Mandatory Turn Restrictions
 	  WHERE v.teid <> 0
 	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
 	  FROM itn_nt_restrictions t 
@@ -1135,7 +1135,7 @@ These can all be tested in QGIS using the Trun Restricted Shortest Path function
 	  SELECT row_number() over() AS rid,
 	  v.feid AS feid,
 	  v.teid AS teid
-	  FROM itn_ne_nt_restrictions v
+	  FROM itn_ne_nt_restrictions v -- No Entry Turn Restrictions
 	  WHERE v.teid <> 0
 	  AND v.teid NOT IN (SELECT DISTINCT t.teid 
 	  FROM itn_nt_restrictions t 
