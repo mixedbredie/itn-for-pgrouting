@@ -1151,16 +1151,16 @@ ITN contains a lot of information in the RRI tables.  You can add height restric
 
 First, create a view to cross reference the roadlink and roadlinkinformation tables.
 
-	CREATE OR REPLACE VIEW roadlinkinformation_roadlink AS 
+	CREATE OR REPLACE VIEW osmm_itn.roadlinkinformation_roadlink AS 
 	 SELECT a.roadlinkinformation_fid,
 	    replace(a.roadlink_fid, '#'::text, ''::text) AS roadlink_fid
 	   FROM ( SELECT roadlinkinformation.fid AS roadlinkinformation_fid,
 	            roadlinkinformation.referencetoroadlink_href::text AS roadlink_fid
 	           FROM roadlinkinformation) a;
 	
-	ALTER TABLE roadlinkinformation_roadlink
+	ALTER TABLE osmm_itn.roadlinkinformation_roadlink
 	  OWNER TO postgres;
-	COMMENT ON VIEW roadlinkinformation_roadlink
+	COMMENT ON VIEW osmm_itn.roadlinkinformation_roadlink
 	  IS 'Road link information cross reference view';
 
 Then create a view of the links with height restrictions:
