@@ -457,15 +457,15 @@ One big update for all the road links.  Sets an average speed in km/h for each l
 
 Then use the speed and road link length to calculate a time cost for each road link.
 
-    UPDATE itn_network SET
-    cost_time = CASE
-        WHEN one_way='TF' THEN 10000.0
-        ELSE cost_len/1000.0/rl_speed::numeric*3600.0
-        END,
-    rcost_time = CASE
-        WHEN one_way='FT' THEN 10000.0
-        ELSE cost_len/1000.0/rl_speed::numeric*3600.0
-        END;
+	UPDATE itn_network SET
+	  cost_time = CASE
+	    WHEN one_way='FT' THEN 10000.0
+	    ELSE ST_Length(geometry)/1000.0/rl_speed::numeric*3600.0
+	    END,
+	  rcost_time = CASE
+	    WHEN one_way='TF' THEN 10000.0
+	    ELSE ST_Length(geometry)/1000.0/rl_speed::numeric*3600.0
+	    END;
         
 Check the table to make sure the fields have been updated with appropriate values.  Now it's time to build the network.
 
