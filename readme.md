@@ -1,6 +1,8 @@
 Building ITN for pgRouting
 ==========================
 
+As ITN is being retired you should have a look at [Highways Network](https://github.com/mixedbredie/highways-for-pgrouting) instead.
+
 This document and repository explains how to load Ordnance Survey ITN GML into a PostGIS database with Loader and then build a network suitable for use with pgRouting.  The network will have one way streets, no entry and no turn restrictions, mandatory turns and grade separations for over- and underpasses.  Network costs will be calulated using average travel speeds.  Further realism can be added to the network using more of the road routing information supplied with ITN.  I'll leave that to better brains than mine.
 
 Setting up PostGIS
